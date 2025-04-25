@@ -5,6 +5,8 @@ import {
   onToggleExtension,
   selectedExtensions$,
 } from "@/components/AccountSelector/accounts.state";
+import { dot } from "@polkadot-api/descriptors";
+import { getProxySigner } from "@polkadot-api/meta-signers";
 import {
   createLinkedAccountsSdk,
   NestedLinkedAccountsResult,
@@ -12,6 +14,8 @@ import {
 } from "@polkadot-api/sdk-accounts";
 import { state, useStateObservable, withDefault } from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
+import { CircleCheck, TriangleAlert } from "lucide-react";
+import { PolkadotSigner } from "polkadot-api";
 import {
   catchError,
   combineLatest,
@@ -24,11 +28,7 @@ import {
   switchMap,
 } from "rxjs";
 import { client$ } from "./SelectChain";
-import { dot } from "@polkadot-api/descriptors";
 import { multisigAccount$ } from "./SelectMultisig";
-import { PolkadotSigner } from "polkadot-api";
-import { getProxySigner } from "@polkadot-api/meta-signers";
-import { CircleCheck, TriangleAlert } from "lucide-react";
 
 const linkedAccountsSdk$ = client$.pipeState(
   map((client) =>
