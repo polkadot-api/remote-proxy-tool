@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { getHashParam, setHashParam } from "@/lib/hashParams";
 import { state, useStateObservable } from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
 import { Dot } from "lucide-react";
@@ -8,7 +9,16 @@ import { getSmProvider } from "polkadot-api/sm-provider";
 import { startFromWorker } from "polkadot-api/smoldot/from-worker";
 import SmWorker from "polkadot-api/smoldot/worker?worker";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
-import { concat, finalize, from, map, NEVER, startWith, switchMap } from "rxjs";
+import {
+  concat,
+  finalize,
+  from,
+  map,
+  NEVER,
+  startWith,
+  switchMap,
+  tap,
+} from "rxjs";
 
 const smoldot = startFromWorker(new SmWorker(), {
   logCallback: (level, target, message) => {
@@ -28,15 +38,31 @@ interface SelectedChain {
   type: "sm" | "ws";
   value: string;
 }
+
 const [selectedChainChange$, setSelectedChain] = createSignal<SelectedChain>();
-const selectedChain$ = state<SelectedChain>(selectedChainChange$, {
+
+const initialChainParam = getHashParam("chain");
+let initialChain: SelectedChain = {
   type: "sm",
   value: "polkadot",
-});
+};
+if (initialChainParam) {
+  const [type, ...value] = initialChainParam.split("-");
+  initialChain = {
+    type,
+    value: value.join("-"),
+  } as SelectedChain;
+}
+
+const selectedChain$ = state<SelectedChain>(
+  selectedChainChange$.pipe(
+    tap((v) => setHashParam("chain", `${v.type}-${v.value}`))
+  ),
+  initialChain
+);
 
 const getProvider = (selectedChain: SelectedChain) => {
   if (selectedChain.type === "ws") {
-    console.log("return ws");
     return withPolkadotSdkCompat(getWsProvider(selectedChain.value));
   }
   return getSmProvider(
@@ -52,7 +78,6 @@ export const client$ = state(
   selectedChain$.pipe(
     switchMap((selectedChain) => {
       const provider = getProvider(selectedChain);
-      console.log("create new client");
       const client = createClient(provider);
 
       const client$ = from(client.getUnsafeApi().runtimeToken).pipe(

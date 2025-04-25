@@ -1,4 +1,14 @@
 import { AccountInput } from "@/components/AccountSelector/AccountInput";
+import { OnChainIdentity } from "@/components/AccountSelector/OnChainIdentity";
+import { getHashParam, setHashParam } from "@/lib/hashParams";
+import type { dot } from "@polkadot-api/descriptors";
+import { novasamaProvider } from "@polkadot-api/sdk-accounts";
+import {
+  AccountId,
+  Binary,
+  Blake2256,
+  getMultisigAccountId,
+} from "@polkadot-api/substrate-bindings";
 import {
   state,
   Subscribe,
@@ -6,7 +16,6 @@ import {
   withDefault,
 } from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
-import { novasamaProvider } from "@polkadot-api/sdk-accounts";
 import {
   catchError,
   combineLatest,
@@ -15,20 +24,16 @@ import {
   of,
   startWith,
   switchMap,
+  tap,
 } from "rxjs";
-import { OnChainIdentity } from "@/components/AccountSelector/OnChainIdentity";
-import { client$ } from "./SelectChain";
 import { tx$ } from "./CallData";
-import type { dot } from "@polkadot-api/descriptors";
-import {
-  AccountId,
-  Binary,
-  Blake2256,
-  getMultisigAccountId,
-} from "@polkadot-api/substrate-bindings";
+import { client$ } from "./SelectChain";
 
 const [multisigAddressChange$, setMultisigAddress] = createSignal<string>();
-const multisigAddress$ = state(multisigAddressChange$, null);
+const multisigAddress$ = state(
+  multisigAddressChange$.pipe(tap((v) => setHashParam("multisigaddr", v))),
+  getHashParam("multisigaddr") ?? null
+);
 
 const multisig$ = multisigAddress$.pipeState(
   switchMap((address) =>
