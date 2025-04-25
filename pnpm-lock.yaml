@@ -11,6 +11,9 @@ dependencies:
   '@polkadot-api/descriptors':
     specifier: file:.papi/descriptors
     version: file:.papi/descriptors(polkadot-api@1.10.0)
+  '@polkadot-api/meta-signers':
+    specifier: ^0.1.5
+    version: 0.1.5
   '@polkadot-api/sdk-accounts':
     specifier: 0.0.1-1
     version: 0.0.1-1(@noble/hashes@1.8.0)(@react-rxjs/core@0.10.8)(polkadot-api@1.10.0)(react@19.1.0)(rxjs@7.8.2)
@@ -797,6 +800,16 @@ packages:
     resolution: {integrity: sha512-4WgHlvy+xee1ADaaVf6+MlK/+jGMtsMgAzvbQOJZnP4PfQuagoTqaeayk8HYKxXGphogLlPbD06tANxcb+nvAg==}
     dependencies:
       '@polkadot-api/json-rpc-provider': 0.0.4
+    dev: false
+
+  /@polkadot-api/meta-signers@0.1.5:
+    resolution: {integrity: sha512-tAqqoUF9bWC2OynyAGCubHfhF54eHqge32Wik/dVooG7YT3ZY45xjtbI9Dt2ffg3FHoMzzo+0STf1xSEoKAEyA==}
+    dependencies:
+      '@polkadot-api/metadata-builders': 0.11.0
+      '@polkadot-api/polkadot-signer': 0.1.6
+      '@polkadot-api/signer': 0.1.16
+      '@polkadot-api/substrate-bindings': 0.12.0
+      '@polkadot-api/utils': 0.1.2
     dev: false
 
   /@polkadot-api/metadata-builders@0.11.0:

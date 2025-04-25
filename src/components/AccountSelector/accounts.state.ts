@@ -1,9 +1,5 @@
 import { state, withDefault } from "@react-rxjs/core";
-import {
-  combineKeys,
-  createKeyedSignal,
-  createSignal,
-} from "@react-rxjs/utils";
+import { combineKeys, createKeyedSignal } from "@react-rxjs/utils";
 import {
   connectInjectedExtension,
   getInjectedExtensions,
@@ -17,7 +13,6 @@ import {
   filter,
   interval,
   map,
-  merge,
   NEVER,
   Observable,
   of,
@@ -185,15 +180,6 @@ export const accountsByExtension$ = state(
   new Map<string, InjectedPolkadotAccount[]>()
 );
 
-export const [valueSelected$, selectValue] = createSignal<string>();
-const LS_KEY = "selected-signer";
-export const selectedValue$ = state(
-  merge(
-    of(localStorage.getItem(LS_KEY)),
-    valueSelected$.pipe(tap((v) => localStorage.setItem(LS_KEY, v)))
-  ),
-  null
-);
 export const allAccounts$ = accountsByExtension$.pipeState(
   map((accountsByExtension) =>
     [...accountsByExtension.entries()].flatMap(([extension, accounts]) =>
@@ -201,19 +187,4 @@ export const allAccounts$ = accountsByExtension$.pipeState(
     )
   ),
   withDefault([] as string[])
-);
-
-export const selectedAccount$ = selectedValue$.pipeState(
-  switchMap((value) => {
-    if (!value) return of(null);
-    const [address, ...extensionParts] = value.split("-");
-    const extension = extensionParts.join("-");
-    return extensionAccounts$(extension).pipe(
-      map(
-        (accounts) =>
-          accounts.find((account) => account.address === address) ?? null
-      )
-    );
-  }),
-  withDefault(null)
 );

@@ -57,6 +57,18 @@ const multisig$ = multisigAddress$.pipeState(
 
 export const multisigAccount$ = multisig$.pipeState(
   map((v) => v?.value ?? null),
+  map((v) => {
+    if (!v) return null;
+    return {
+      ...v,
+      multisigId: acc.dec(
+        getMultisigAccountId({
+          threshold: v.threshold,
+          signatories: v.addresses.map(acc.enc),
+        })
+      ),
+    };
+  }),
   startWith(null)
 );
 
@@ -66,16 +78,12 @@ export const multisigCall$ = state(
     switchMap(async ([client, tx, account]) => {
       if (!client || !tx || !account) return null;
 
-      const multisigId = getMultisigAccountId({
-        threshold: account.threshold,
-        signatories: account.addresses.map(acc.enc),
-      });
       const callHash = Blake2256((await tx.getEncodedData()).asBytes());
 
       return client
         .getUnsafeApi<typeof dot>()
         .query.Multisig.Multisigs.getValue(
-          acc.dec(multisigId),
+          account.multisigId,
           Binary.fromBytes(callHash)
         );
     })
