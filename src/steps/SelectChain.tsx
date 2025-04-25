@@ -20,6 +20,8 @@ const smoldot = startFromWorker(new SmWorker(), {
 const smoldotChains: Record<string, () => Promise<{ chainSpec: string }>> = {
   polkadot: async () => import("polkadot-api/chains/polkadot"),
   kusama: async () => import("polkadot-api/chains/ksmcc3"),
+  westend: async () => import("polkadot-api/chains/westend2"),
+  paseo: async () => import("polkadot-api/chains/paseo"),
 };
 
 interface SelectedChain {
@@ -72,10 +74,9 @@ export const client$ = state(
 export const SelectChain = () => {
   const selectedChain = useStateObservable(selectedChain$);
   const client = useStateObservable(client$);
-  console.log("client", client);
 
   return (
-    <div>
+    <div className="p-2">
       <ul className="flex gap-4 flex-wrap">
         {Object.keys(smoldotChains).map((chain) => (
           <li key={chain}>

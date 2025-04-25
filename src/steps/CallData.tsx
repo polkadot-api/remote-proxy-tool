@@ -40,7 +40,7 @@ export const CallData = () => {
     rawCallData.length > 0 && rawCallData != "0x" && !decodedCallData;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 p-2">
       <Textarea
         className={
           hasPossibleError

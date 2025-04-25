@@ -13,15 +13,19 @@ function App() {
         <Step title="1. Select Chain">
           <SelectChain />
         </Step>
+        <hr />
         <Step title="2. Call Data">
           <CallData />
         </Step>
+        <hr />
         <Step title="3. Select Multisig">
           <SelectMultisig />
         </Step>
+        <hr />
         <Step title="4. Select Account">
           <SelectAccount />
         </Step>
+        <hr />
         <Step title="5. Submit">
           <Submit />
         </Step>
