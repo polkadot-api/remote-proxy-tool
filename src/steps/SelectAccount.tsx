@@ -5,6 +5,7 @@ import {
   onToggleExtension,
   selectedExtensions$,
 } from "@/components/AccountSelector/accounts.state";
+import { genericSS58 } from "@/lib/ss58";
 import { dot } from "@polkadot-api/descriptors";
 import { getProxySigner } from "@polkadot-api/meta-signers";
 import {
@@ -14,7 +15,6 @@ import {
 } from "@polkadot-api/sdk-accounts";
 import { state, useStateObservable, withDefault } from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
-import { CircleCheck, TriangleAlert } from "lucide-react";
 import { PolkadotSigner } from "polkadot-api";
 import {
   catchError,
@@ -79,51 +79,70 @@ const linkedAccounts$ = combineLatest([
   shareReplay(1)
 );
 
-export const selectedSigner$ = state(
-  combineLatest([linkedAccounts$, selectedAccount$]).pipe(
-    switchMap(async ([multisigLinkedAccounts, selectedAccount]) => {
-      if (!multisigLinkedAccounts || !selectedAccount) return null;
+type NestedSigner = (signer: PolkadotSigner) => PolkadotSigner;
+type AccountSigners = Array<{
+  address: string;
+  signerFn: NestedSigner;
+}>;
+const identity = (signer: PolkadotSigner) => signer;
 
-      const findSigner = (
-        address: string,
-        result: NestedLinkedAccountsResult | null
-      ): PolkadotSigner | null => {
-        // TODO SS58format-insensitive
-        if (address === selectedAccount.address)
-          return selectedAccount.polkadotSigner;
-        if (!result) return null;
-
-        switch (result.type) {
-          case "root":
-            return null;
-          case "multisig":
-            // This won't work across multiple levels of multisig :/
-            return null;
-          case "proxy": {
-            const innerSigner = result.value.accounts
-              .map((v) => findSigner(v.address, v.linkedAccounts))
-              .find((v) => !!v);
-
-            return innerSigner
-              ? getProxySigner(
-                  {
-                    real: address,
-                  },
-                  innerSigner
-                )
-              : null;
-          }
-        }
-      };
+const accountSigners$ = state(
+  linkedAccounts$.pipe(
+    switchMap(async (multisigLinkedAccounts) => {
+      if (!multisigLinkedAccounts) return null;
 
       if (multisigLinkedAccounts.type !== "multisig") {
         throw new Error("Expected multisig account");
       }
-      return (
+
+      const findSigners = (
+        address: string,
+        result: NestedLinkedAccountsResult | null
+      ): AccountSigners => {
+        const baseSigner = { address, signerFn: identity };
+
+        if (result?.type === "proxy") {
+          const innerSigners = result.value.accounts.flatMap((v) =>
+            findSigners(genericSS58(v.address), v.linkedAccounts)
+          );
+
+          return [
+            baseSigner,
+            ...innerSigners.map(({ address, signerFn }) => ({
+              address,
+              signerFn: (signer: PolkadotSigner) =>
+                getProxySigner(
+                  {
+                    real: address,
+                  },
+                  signerFn(signer)
+                ),
+            })),
+          ];
+        }
+
+        return [baseSigner];
+      };
+
+      return Object.fromEntries(
         multisigLinkedAccounts.value.accounts
-          .map((v) => findSigner(v.address, v.linkedAccounts))
-          .find((v) => !!v) ?? null
+          .flatMap((account) =>
+            findSigners(genericSS58(account.address), account.linkedAccounts)
+          )
+          .map((v) => [v.address, v.signerFn])
       );
+    })
+  ),
+  null
+);
+
+export const selectedSigner$ = state(
+  combineLatest([accountSigners$, selectedAccount$]).pipe(
+    switchMap(async ([signers, selectedAccount]) => {
+      if (!signers || !selectedAccount) return null;
+
+      const nestedSigner = signers[genericSS58(selectedAccount.address)];
+      return nestedSigner ? nestedSigner(selectedAccount.polkadotSigner) : null;
     })
   ),
   null
@@ -133,7 +152,9 @@ export const SelectAccount = () => {
   const availableExtensions = useStateObservable(availableExtensions$);
   const selectedExtensions = useStateObservable(selectedExtensions$);
   const value = useStateObservable(selectedValue$);
-  const selectedSigner = useStateObservable(selectedSigner$);
+  const accountSigners = useStateObservable(accountSigners$);
+
+  const allowedAddresses = accountSigners ? Object.keys(accountSigners) : [];
 
   return (
     <div className="p-2 space-y-2">
@@ -163,22 +184,12 @@ export const SelectAccount = () => {
       </div>
       <div>
         <div className="text-muted-foreground text-sm">Select account</div>
-        <AccountPicker value={value} selectValue={selectValue} />{" "}
+        <AccountPicker
+          value={value}
+          selectValue={selectValue}
+          allowedAddresses={allowedAddresses}
+        />{" "}
       </div>
-      {value ? (
-        selectedSigner ? (
-          <div>
-            <CircleCheck className="inline-block text-green-600" size={20} />{" "}
-            The account is one of the members of the multisig
-          </div>
-        ) : (
-          <div className="text-orange-600">
-            <TriangleAlert className="inline-block align-baseline" size={20} />{" "}
-            The selected account doesn't look like one of the signatories of the
-            selected multisig
-          </div>
-        )
-      ) : null}
     </div>
   );
 };

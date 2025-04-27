@@ -15,8 +15,7 @@ export const setHashParams = (
     else params.set(param, value);
   });
 
-  location = location ?? globalThis.location;
-  location.hash = "#" + params.toString();
+  history.replaceState(null, "", "#" + params.toString());
 };
 
 export const getHashParam = (name: string) => getHashParams().get(name);

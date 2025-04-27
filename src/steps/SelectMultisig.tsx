@@ -1,10 +1,10 @@
 import { AccountInput } from "@/components/AccountSelector/AccountInput";
 import { OnChainIdentity } from "@/components/AccountSelector/OnChainIdentity";
 import { getHashParam, setHashParam } from "@/lib/hashParams";
+import { accId } from "@/lib/ss58";
 import type { dot } from "@polkadot-api/descriptors";
 import { novasamaProvider } from "@polkadot-api/sdk-accounts";
 import {
-  AccountId,
   Binary,
   Blake2256,
   getMultisigAccountId,
@@ -66,10 +66,10 @@ export const multisigAccount$ = multisig$.pipeState(
     if (!v) return null;
     return {
       ...v,
-      multisigId: acc.dec(
+      multisigId: accId.dec(
         getMultisigAccountId({
           threshold: v.threshold,
-          signatories: v.addresses.map(acc.enc),
+          signatories: v.addresses.map(accId.enc),
         })
       ),
     };
@@ -77,7 +77,6 @@ export const multisigAccount$ = multisig$.pipeState(
   startWith(null)
 );
 
-const acc = AccountId();
 export const multisigCall$ = state(
   combineLatest([client$, tx$, multisigAccount$]).pipe(
     switchMap(async ([client, tx, account]) => {
@@ -107,7 +106,7 @@ export const SelectMultisig = () => {
         <div className="space-y-1">
           <h3>From Multisig Address</h3>
           <p className="text-muted-foreground text-sm">
-            (Needs to be indexed by Novasama)
+            (Needs to have successfully submitted an initial transaction)
           </p>
           <Subscribe fallback={null}>
             <AccountInput
@@ -130,7 +129,7 @@ export const SelectMultisig = () => {
           ) : null}
           {multisig?.type === "not-found" ? (
             <div className="text-orange-600">
-              Not a multisig or not indexed yet by Novasama
+              Not a multisig or not indexed yet
             </div>
           ) : null}
           {multisigAddress && !multisig ? (

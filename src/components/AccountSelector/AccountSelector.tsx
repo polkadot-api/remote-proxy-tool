@@ -1,3 +1,4 @@
+import { genericSS58 } from "@/lib/ss58";
 import { useStateObservable } from "@react-rxjs/core";
 import { InjectedExtension } from "polkadot-api/pjs-signer";
 import {
@@ -19,7 +20,8 @@ import { OnChainIdentity } from "./OnChainIdentity";
 export const AccountPicker: React.FC<{
   value: string | null;
   selectValue: (value: string) => void;
-}> = ({ value, selectValue }) => {
+  allowedAddresses: string[];
+}> = ({ value, selectValue, allowedAddresses }) => {
   const extensions = useStateObservable(selectedExtensions$);
   const allAccounts = useStateObservable(allAccounts$);
 
@@ -30,21 +32,29 @@ export const AccountPicker: React.FC<{
 
   return (
     <Select value={valueExists ? value ?? "" : ""} onValueChange={selectValue}>
-      <SelectTrigger className="h-auto border-foreground/30">
+      <SelectTrigger
+        className="h-auto border-foreground/30"
+        forceSvgSize={false}
+      >
         <SelectValue placeholder="Select an account" />
       </SelectTrigger>
       <SelectContent>
         {activeExtensions.map((extension) => (
-          <Accounts key={extension.name} extension={extension} />
+          <Accounts
+            key={extension.name}
+            extension={extension}
+            allowedAddresses={allowedAddresses}
+          />
         ))}
       </SelectContent>
     </Select>
   );
 };
 
-const Accounts: React.FC<{ extension: InjectedExtension }> = ({
-  extension,
-}) => {
+const Accounts: React.FC<{
+  extension: InjectedExtension;
+  allowedAddresses: string[];
+}> = ({ extension, allowedAddresses }) => {
   const accounts = useStateObservable(extensionAccounts$(extension.name));
 
   return (
@@ -54,6 +64,8 @@ const Accounts: React.FC<{ extension: InjectedExtension }> = ({
         <SelectItem
           key={account.address}
           value={account.address + "-" + extension.name}
+          disabled={!allowedAddresses.includes(genericSS58(account.address))}
+          forceSvgSize={false}
         >
           <OnChainIdentity value={account.address} name={account.name} />
         </SelectItem>
