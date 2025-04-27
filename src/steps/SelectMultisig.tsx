@@ -118,15 +118,20 @@ export const multisigAccount$ = multisig$.pipeState(
 );
 
 export const multisigCall$ = state(
-  combineLatest([client$, tx$, multisigAccount$]).pipe(
-    switchMap(async ([client, tx, account]) => {
-      if (!client || !tx || !account) return null;
-
-      const callHash = Blake2256((await tx.getEncodedData()).asBytes());
+  combineLatest([
+    client$,
+    tx$.pipe(
+      switchMap((tx) => tx?.getEncodedData() ?? of(null)),
+      map((v) => (v ? Blake2256(v.asBytes()) : null))
+    ),
+    multisigAccount$,
+  ]).pipe(
+    switchMap(([client, callHash, account]) => {
+      if (!client || !callHash || !account) return of(null);
 
       return client
         .getUnsafeApi<typeof dot>()
-        .query.Multisig.Multisigs.getValue(
+        .query.Multisig.Multisigs.watchValue(
           account.multisigId,
           Binary.fromBytes(callHash)
         );

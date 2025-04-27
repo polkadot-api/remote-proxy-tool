@@ -7,7 +7,7 @@ import { Submit } from "./steps/Submit";
 
 function App() {
   return (
-    <div className="p-2">
+    <div className="p-2 max-w-2xl m-auto">
       <h1 className="font-bold text-2xl border-b p-2">PAPI Multisig Tool</h1>
       <div className="p-2 space-y-2">
         <Step title="1. Select Chain">
