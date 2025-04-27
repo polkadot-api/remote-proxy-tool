@@ -18,7 +18,7 @@ import { createSignal } from "@react-rxjs/utils";
 import { accId, genericSS58 } from "@/lib/ss58";
 import { TriangleAlert } from "lucide-react";
 import { FC } from "react";
-import { TxEvent } from "polkadot-api";
+import { InvalidTxError, TxEvent } from "polkadot-api";
 import { stringify } from "@/lib/json";
 
 const multisigSigner$ = state(
@@ -76,7 +76,16 @@ const txStatus$ = state(
       return tx.signSubmitAndWatch(signer).pipe(
         catchError((err) => {
           console.error(err);
-          return of(null);
+          if (err instanceof InvalidTxError) {
+            return of({
+              type: "invalid" as const,
+              value: err.error,
+            });
+          }
+          return of({
+            type: "error" as const,
+            value: err?.message ?? "Uknown", // For the lore
+          });
         })
       );
     })
@@ -92,7 +101,11 @@ export const Submit = () => {
   return (
     <div className="p-2 space-y-2">
       <Button
-        disabled={!isReady || !!txStatus || hasAlreadyApproved}
+        disabled={
+          !isReady ||
+          !!(txStatus && !["error", "invalid"].includes(txStatus.type)) ||
+          hasAlreadyApproved
+        }
         onClick={submit}
       >
         Submit
@@ -108,13 +121,23 @@ export const Submit = () => {
   );
 };
 
-const TxStatus: FC<{ status: TxEvent }> = ({ status }) => {
+const TxStatus: FC<{
+  status: TxEvent | { type: "invalid" | "error"; value: any };
+}> = ({ status }) => {
   const renderContent = () => {
     switch (status.type) {
+      case "error":
+        return <div className="text-sm">Submission failed! {status.value}</div>;
       case "signed":
         return (
           <div className="text-sm text-muted-foreground">
             Transaction signed, validating…
+          </div>
+        );
+      case "invalid":
+        return (
+          <div className="text-sm">
+            Validation failed! <code>{stringify(status.value)}</code>
           </div>
         );
       case "broadcasted":
