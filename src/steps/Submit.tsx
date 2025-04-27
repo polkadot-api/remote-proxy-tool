@@ -27,15 +27,20 @@ const multisigSigner$ = state(
       if (!client || !multisigAccount || !selectedSigner) return null;
 
       const unsafeApi = client.getUnsafeApi<typeof dot>();
-      return getMultisigSigner(
-        {
-          threshold: multisigAccount.threshold,
-          signatories: multisigAccount.addresses,
-        },
-        unsafeApi.query.Multisig.Multisigs.getValue,
-        unsafeApi.apis.TransactionPaymentApi.query_info,
-        selectedSigner
-      );
+      try {
+        return getMultisigSigner(
+          {
+            threshold: multisigAccount.threshold,
+            signatories: multisigAccount.addresses,
+          },
+          unsafeApi.query.Multisig.Multisigs.getValue,
+          unsafeApi.apis.TransactionPaymentApi.query_info,
+          selectedSigner
+        );
+      } catch (ex) {
+        console.error(ex);
+        return null;
+      }
     })
   ),
   null

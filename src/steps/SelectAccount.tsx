@@ -20,11 +20,13 @@ import {
   catchError,
   combineLatest,
   concatWith,
+  defer,
   lastValueFrom,
   map,
   NEVER,
   of,
   shareReplay,
+  startWith,
   switchMap,
 } from "rxjs";
 import { client$ } from "./SelectChain";
@@ -67,9 +69,27 @@ const linkedAccounts$ = combineLatest([
   switchMap(async ([linkedAccountsSdk, multisigAccount]) => {
     if (!linkedAccountsSdk || !multisigAccount) return null;
 
-    return lastValueFrom(
+    // First try getting the value directly from the multisig account
+    const topValue = await lastValueFrom(
       linkedAccountsSdk.getNestedLinkedAccounts$(multisigAccount.multisigId)
     );
+    if (topValue.type === "multisig") return topValue;
+
+    // Maybe it's not indexed yet, then grab each one individually
+    return {
+      type: "multisig" as const,
+      value: {
+        threshold: multisigAccount.threshold,
+        accounts: await Promise.all(
+          multisigAccount.addresses.map(async (address) => ({
+            address,
+            linkedAccounts: await lastValueFrom(
+              linkedAccountsSdk.getNestedLinkedAccounts$(address)
+            ),
+          }))
+        ),
+      },
+    };
   }),
   catchError((err) => {
     console.log(err);
@@ -88,50 +108,52 @@ const identity = (signer: PolkadotSigner) => signer;
 
 const accountSigners$ = state(
   linkedAccounts$.pipe(
-    switchMap(async (multisigLinkedAccounts) => {
-      if (!multisigLinkedAccounts) return null;
+    switchMap((multisigLinkedAccounts) =>
+      defer(async () => {
+        if (!multisigLinkedAccounts) return null;
 
-      if (multisigLinkedAccounts.type !== "multisig") {
-        throw new Error("Expected multisig account");
-      }
-
-      const findSigners = (
-        address: string,
-        result: NestedLinkedAccountsResult | null
-      ): AccountSigners => {
-        const baseSigner = { address, signerFn: identity };
-
-        if (result?.type === "proxy") {
-          const innerSigners = result.value.accounts.flatMap((v) =>
-            findSigners(genericSS58(v.address), v.linkedAccounts)
-          );
-
-          return [
-            baseSigner,
-            ...innerSigners.map(({ address, signerFn }) => ({
-              address,
-              signerFn: (signer: PolkadotSigner) =>
-                getProxySigner(
-                  {
-                    real: address,
-                  },
-                  signerFn(signer)
-                ),
-            })),
-          ];
+        if (multisigLinkedAccounts.type !== "multisig") {
+          throw new Error("Expected multisig account");
         }
 
-        return [baseSigner];
-      };
+        const findSigners = (
+          address: string,
+          result: NestedLinkedAccountsResult | null
+        ): AccountSigners => {
+          const baseSigner = { address, signerFn: identity };
 
-      return Object.fromEntries(
-        multisigLinkedAccounts.value.accounts
-          .flatMap((account) =>
-            findSigners(genericSS58(account.address), account.linkedAccounts)
-          )
-          .map((v) => [v.address, v.signerFn])
-      );
-    })
+          if (result?.type === "proxy") {
+            const innerSigners = result.value.accounts.flatMap((v) =>
+              findSigners(genericSS58(v.address), v.linkedAccounts)
+            );
+
+            return [
+              baseSigner,
+              ...innerSigners.map(({ address, signerFn }) => ({
+                address,
+                signerFn: (signer: PolkadotSigner) =>
+                  getProxySigner(
+                    {
+                      real: address,
+                    },
+                    signerFn(signer)
+                  ),
+              })),
+            ];
+          }
+
+          return [baseSigner];
+        };
+
+        return Object.fromEntries(
+          multisigLinkedAccounts.value.accounts
+            .flatMap((account) =>
+              findSigners(genericSS58(account.address), account.linkedAccounts)
+            )
+            .map((v) => [v.address, v.signerFn])
+        );
+      }).pipe(startWith(null))
+    )
   ),
   null
 );
