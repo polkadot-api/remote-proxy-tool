@@ -17,6 +17,9 @@ import { multisigAccount$, multisigCall$ } from "./SelectMultisig";
 import { createSignal } from "@react-rxjs/utils";
 import { accId, genericSS58 } from "@/lib/ss58";
 import { TriangleAlert } from "lucide-react";
+import { FC } from "react";
+import { TxEvent } from "polkadot-api";
+import { stringify } from "@/lib/json";
 
 const multisigSigner$ = state(
   combineLatest([client$, multisigAccount$, selectedSigner$]).pipe(
@@ -95,7 +98,56 @@ export const Submit = () => {
           The selected account has already approved this multisig call
         </div>
       ) : null}
-      {txStatus ? <div>Status: {txStatus.type}</div> : null}
+      {txStatus ? <TxStatus status={txStatus} /> : null}
+    </div>
+  );
+};
+
+const TxStatus: FC<{ status: TxEvent }> = ({ status }) => {
+  const renderContent = () => {
+    switch (status.type) {
+      case "signed":
+        return (
+          <div className="text-sm text-muted-foreground">
+            Transaction signed, validating…
+          </div>
+        );
+      case "broadcasted":
+        return (
+          <div className="text-sm text-muted-foreground">
+            The transaction has been sent, waiting to get it included in a
+            block…
+          </div>
+        );
+      case "txBestBlocksState":
+        if (!status.found) return null;
+        return status.ok ? (
+          <div>
+            The transaction has been included in a block, waiting for
+            confirmation…
+          </div>
+        ) : (
+          <div>
+            The transaction has been included in a block but it's failing:{" "}
+            <code>{stringify(status.dispatchError)}</code>, waiting for
+            confirmation…
+          </div>
+        );
+      case "finalized":
+        return status.ok ? (
+          <div>Transaction succeeded!</div>
+        ) : (
+          <div>
+            Transaction failed: <code>{stringify(status.dispatchError)}</code>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div>
+      <div>Status: {status.type}</div>
+      {renderContent()}
     </div>
   );
 };

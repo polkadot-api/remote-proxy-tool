@@ -1,7 +1,10 @@
 import { Textarea } from "@/components/ui/textarea";
+import { getHashParam, setHashParam } from "@/lib/hashParams";
+import { stringify } from "@/lib/json";
 import { state, useStateObservable, withDefault } from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
 import { ExternalLink } from "lucide-react";
+import { Binary } from "polkadot-api";
 import {
   catchError,
   combineLatest,
@@ -12,8 +15,6 @@ import {
   tap,
 } from "rxjs";
 import { client$ } from "./SelectChain";
-import { Binary } from "polkadot-api";
-import { getHashParam, setHashParam } from "@/lib/hashParams";
 
 const [callDataChange$, setCallData] = createSignal<string>();
 const rawCallData$ = state(
@@ -80,31 +81,9 @@ export const CallData = () => {
       </div>
       {decodedCallData ? (
         <div className="border rounded font-mono p-2 text-sm text-foreground/80 max-h-64 overflow-auto">
-          <pre>
-            {JSON.stringify(
-              decodedCallData,
-              (_, v) =>
-                typeof v === "bigint"
-                  ? `${v}n`
-                  : v instanceof Binary
-                  ? bytesToString(v)
-                  : v,
-              2
-            )}
-          </pre>
+          <pre>{stringify(decodedCallData)}</pre>
         </div>
       ) : null}
     </div>
   );
-};
-
-const textDecoder = new TextDecoder("utf-8", { fatal: true });
-const bytesToString = (value: Binary) => {
-  try {
-    const bytes = value.asBytes();
-    if (bytes.slice(0, 5).every((b) => b < 32)) throw null;
-    return textDecoder.decode(bytes);
-  } catch (_) {
-    return value.asHex();
-  }
 };
