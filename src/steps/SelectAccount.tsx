@@ -11,7 +11,6 @@ import { getProxySigner } from "@polkadot-api/meta-signers";
 import {
   createLinkedAccountsSdk,
   NestedLinkedAccountsResult,
-  novasamaProvider,
 } from "@polkadot-api/sdk-accounts";
 import { state, useStateObservable, withDefault } from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
@@ -37,7 +36,7 @@ const linkedAccountsSdk$ = client$.pipeState(
     client
       ? createLinkedAccountsSdk(
           client.getTypedApi(dot) as any,
-          novasamaProvider
+          async () => null
         )
       : null
   ),
@@ -69,13 +68,6 @@ const linkedAccounts$ = combineLatest([
   switchMap(async ([linkedAccountsSdk, multisigAccount]) => {
     if (!linkedAccountsSdk || !multisigAccount) return null;
 
-    // First try getting the value directly from the multisig account
-    const topValue = await lastValueFrom(
-      linkedAccountsSdk.getNestedLinkedAccounts$(multisigAccount.multisigId)
-    );
-    if (topValue.type === "multisig") return topValue;
-
-    // Maybe it's not indexed yet, then grab each one individually
     return {
       type: "multisig" as const,
       value: {

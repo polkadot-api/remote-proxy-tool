@@ -1,6 +1,14 @@
 import { AccountInput } from "@/components/AccountSelector/AccountInput";
 import { OnChainIdentity } from "@/components/AccountSelector/OnChainIdentity";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { getHashParam, setHashParam } from "@/lib/hashParams";
 import { accId } from "@/lib/ss58";
@@ -11,12 +19,18 @@ import {
   Blake2256,
   getMultisigAccountId,
 } from "@polkadot-api/substrate-bindings";
-import { state, Subscribe, useStateObservable } from "@react-rxjs/core";
+import {
+  state,
+  Subscribe,
+  useStateObservable,
+  withDefault,
+} from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
 import { Trash2 } from "lucide-react";
+import { FC, useState } from "react";
 import {
-  catchError,
   combineLatest,
+  EMPTY,
   from,
   map,
   of,
@@ -28,22 +42,7 @@ import { tx$ } from "./CallData";
 import { client$ } from "./SelectChain";
 
 const initialSignatories = getHashParam("signatories");
-const [modeChange$, setMode] = createSignal<"multisig" | "signatories">();
-const mode$ = state(
-  modeChange$,
-  initialSignatories ? "signatories" : "multisig"
-);
-
-const [multisigAddressChange$, setMultisigAddress] = createSignal<string>();
-const multisigAddress$ = state(
-  multisigAddressChange$.pipe(
-    tap((v) => {
-      setHashParam("multisigaddr", v);
-      setHashParam("signatories", null);
-    })
-  ),
-  getHashParam("multisigaddr") ?? null
-);
+const initialThreshold = getHashParam("threshold");
 
 interface Multisig {
   addresses: string[];
@@ -54,48 +53,30 @@ const [multisigSignatoriesChange$, setMultisigSignatories] =
 const multisigSignatories$ = state(
   multisigSignatoriesChange$.pipe(
     tap((v) => {
-      setHashParam("multisigaddr", null);
-      setHashParam("signatories", JSON.stringify(v));
+      setHashParam("signatories", v.addresses.join("_"));
+      setHashParam("threshold", String(v.threshold));
     })
   ),
-  initialSignatories ? (JSON.parse(initialSignatories) as Multisig) : null
+  initialSignatories
+    ? {
+        addresses: initialSignatories.split("_"),
+        threshold: initialThreshold ? Number(initialThreshold) : 1,
+      }
+    : null
 );
 
 const multisig$ = state(
-  combineLatest([mode$, multisigAddress$, multisigSignatories$]).pipe(
-    switchMap(([mode, address, multisig]) => {
-      if (mode === "signatories") {
-        return of(
-          multisig &&
-            multisig.addresses.length >= 2 &&
-            multisig.threshold <= multisig.addresses.length
-            ? {
-                type: "found" as const,
-                value: multisig,
-              }
-            : null
-        );
-      }
-      return address
-        ? from(novasamaProvider(address)).pipe(
-            catchError((err) => {
-              console.error(err);
-              return of(null);
-            }),
-            map((value) =>
-              value
-                ? {
-                    type: "found" as const,
-                    value,
-                  }
-                : {
-                    type: "not-found" as const,
-                  }
-            ),
-            startWith(null)
-          )
-        : of(null);
-    })
+  multisigSignatories$.pipe(
+    map((multisig) =>
+      multisig &&
+      multisig.addresses.length >= 2 &&
+      multisig.threshold <= multisig.addresses.length
+        ? {
+            type: "found" as const,
+            value: multisig,
+          }
+        : null
+    )
   ),
   null
 );
@@ -141,32 +122,13 @@ export const multisigCall$ = state(
 );
 
 export const SelectMultisig = () => {
-  const mode = useStateObservable(mode$);
   const multisig = useStateObservable(multisig$);
   const multisigCall = useStateObservable(multisigCall$);
 
   return (
     <div className="p-2">
       <div className="space-y-1 mb-2">
-        <div className="flex gap-4">
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              checked={mode === "multisig"}
-              onChange={() => setMode("multisig")}
-            />
-            <div className="py-1">From Multisig Address</div>
-          </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              checked={mode === "signatories"}
-              onChange={() => setMode("signatories")}
-            />
-            <div className="py-1">From Signatories</div>
-          </label>
-        </div>
-        {mode === "multisig" ? <FromMultisigAddress /> : <FromSignatories />}
+        <FromSignatories />
       </div>
       {multisig?.type === "found" ? (
         multisigCall ? (
@@ -186,45 +148,6 @@ export const SelectMultisig = () => {
   );
 };
 
-const FromMultisigAddress = () => {
-  const multisig = useStateObservable(multisig$);
-  const multisigAddress = useStateObservable(multisigAddress$);
-
-  return (
-    <div className="space-y-1">
-      <p className="text-muted-foreground text-sm">
-        (Needs to have successfully submitted an initial transaction)
-      </p>
-      <Subscribe fallback={null}>
-        <AccountInput
-          className="my-2"
-          value={multisigAddress}
-          onChange={setMultisigAddress}
-        />
-      </Subscribe>
-
-      {multisig?.type === "found" ? (
-        <div>
-          <h4>Signatories (threshold {multisig.value.threshold})</h4>
-          <ul>
-            {multisig.value.addresses.map((address) => (
-              <li key={address}>
-                <OnChainIdentity value={address} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {multisig?.type === "not-found" ? (
-        <div className="text-orange-600">Not a multisig or not indexed yet</div>
-      ) : null}
-      {multisigAddress && !multisig ? (
-        <div className="text-muted-foreground">Loading…</div>
-      ) : null}
-    </div>
-  );
-};
-
 const FromSignatories = () => {
   const multisig = useStateObservable(multisigSignatories$) ?? {
     threshold: 1,
@@ -233,6 +156,7 @@ const FromSignatories = () => {
 
   return (
     <div className="space-y-1">
+      <ImportIndexed />
       <div className="p-2 shadow rounded">
         <div className="flex items-center gap-2">
           <div>Add Signatory</div>
@@ -307,5 +231,89 @@ const FromSignatories = () => {
         </div>
       )}
     </div>
+  );
+};
+
+const ImportIndexed = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>Import existing multisig</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Import existing multisig</DialogTitle>
+          <DialogDescription>
+            If you have a multisig that has already been indexed, you can import
+            it to have all signatories and threshold filled out
+          </DialogDescription>
+        </DialogHeader>
+        <ImportIndexedContent onDone={() => setOpen(false)} />
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const [importMultisigAddrChange$, importMultisigAddr] = createSignal<string>();
+const importMultisigAddr$ = state(importMultisigAddrChange$, null);
+
+const importSignatories$ = importMultisigAddr$.pipeState(
+  switchMap((v) =>
+    (v
+      ? from(novasamaProvider(v)).pipe(
+          map((result) => ({
+            result,
+          }))
+        )
+      : EMPTY
+    ).pipe(startWith(null))
+  ),
+  withDefault(null)
+);
+
+const ImportIndexedContent: FC<{ onDone: () => void }> = ({ onDone }) => {
+  const addr = useStateObservable(importMultisigAddr$);
+  const importedSignatories = useStateObservable(importSignatories$);
+
+  return (
+    <Subscribe fallback={null}>
+      <AccountInput
+        className="my-2"
+        value={addr}
+        onChange={importMultisigAddr}
+      />
+
+      {importedSignatories?.result ? (
+        <div className="space-y-2">
+          <h4>
+            Signatories (threshold {importedSignatories.result.threshold})
+          </h4>
+          <ul>
+            {importedSignatories.result.addresses.map((address) => (
+              <li key={address}>
+                <OnChainIdentity value={address} />
+              </li>
+            ))}
+          </ul>
+          <Button
+            onClick={() => {
+              if (!importedSignatories.result) return;
+              setMultisigSignatories(importedSignatories.result);
+              onDone();
+            }}
+          >
+            Import
+          </Button>
+        </div>
+      ) : null}
+      {importedSignatories?.result === null ? (
+        <div className="text-orange-600">Not a multisig or not indexed yet</div>
+      ) : null}
+      {addr && !importedSignatories ? (
+        <div className="text-muted-foreground">Loading…</div>
+      ) : null}
+    </Subscribe>
   );
 };
