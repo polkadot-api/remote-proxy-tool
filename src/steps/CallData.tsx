@@ -15,6 +15,7 @@ import {
   tap,
 } from "rxjs";
 import { client$, selectedChain$ } from "./SelectChain";
+import { cn } from "@/lib/utils";
 
 const [callDataChange$, setCallData] = createSignal<string>();
 const rawCallData$ = state(
@@ -72,11 +73,12 @@ export const CallData = () => {
   return (
     <div className="space-y-2 p-2">
       <Textarea
-        className={
+        className={cn(
+          "max-h-32",
           hasPossibleError
             ? "border-orange-400 focus-visible:border-orange-400 focus-visible:ring-orange-400/50"
             : ""
-        }
+        )}
         placeholder="Enter hex-encoded call data"
         value={rawCallData}
         onChange={(evt) => setCallData(evt.target.value)}
@@ -97,9 +99,12 @@ export const CallData = () => {
         to create your call data
       </div>
       {decodedCallData ? (
-        <div className="border rounded font-mono p-2 text-sm text-foreground/80 max-h-64 overflow-auto">
-          <pre>{stringify(decodedCallData)}</pre>
-        </div>
+        <Textarea
+          className="border rounded font-mono p-2 text-sm text-foreground/80 max-h-96 overflow-auto"
+          readOnly
+        >
+          {stringify(decodedCallData)}
+        </Textarea>
       ) : null}
     </div>
   );

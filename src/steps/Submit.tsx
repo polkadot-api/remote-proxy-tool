@@ -103,7 +103,10 @@ export const Submit = () => {
       <Button
         disabled={
           !isReady ||
-          !!(txStatus && !["error", "invalid"].includes(txStatus.type)) ||
+          !!(
+            txStatus &&
+            !["error", "invalid", "finalized"].includes(txStatus.type)
+          ) ||
           hasAlreadyApproved
         }
         onClick={submit}
