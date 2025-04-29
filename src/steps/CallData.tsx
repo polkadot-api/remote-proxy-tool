@@ -14,7 +14,7 @@ import {
   switchMap,
   tap,
 } from "rxjs";
-import { client$ } from "./SelectChain";
+import { client$, selectedChain$ } from "./SelectChain";
 
 const [callDataChange$, setCallData] = createSignal<string>();
 const rawCallData$ = state(
@@ -45,9 +45,26 @@ const decodedCallData$ = tx$.pipeState(
   withDefault(null)
 );
 
+const consoleChainParam$ = selectedChain$.pipeState(
+  map((v) => {
+    if (!v) return "";
+    const params = new URLSearchParams();
+    if (v.type === "ws") {
+      params.set("networkId", "custom");
+      params.set("endpoint", v.value);
+    } else {
+      params.set("endpoint", "light-client");
+      params.set("networkId", v.value);
+    }
+    return `#` + params.toString();
+  }),
+  withDefault("")
+);
+
 export const CallData = () => {
   const rawCallData = useStateObservable(rawCallData$);
   const decodedCallData = useStateObservable(decodedCallData$);
+  const consoleParams = useStateObservable(consoleChainParam$);
 
   const hasPossibleError =
     rawCallData.length > 0 && rawCallData != "0x" && !decodedCallData;
@@ -67,8 +84,8 @@ export const CallData = () => {
       <div>
         Tip: Use
         <a
-          className="underline mx-1"
-          href="https://dev.papi.how/extrinsics"
+          className="underline mx-1 inline-flex "
+          href={"https://dev.papi.how/extrinsics" + consoleParams}
           target="_blank"
         >
           Papi console

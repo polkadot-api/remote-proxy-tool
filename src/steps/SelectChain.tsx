@@ -54,7 +54,7 @@ if (initialChainParam) {
   } as SelectedChain;
 }
 
-const selectedChain$ = state<SelectedChain>(
+export const selectedChain$ = state<SelectedChain>(
   selectedChainChange$.pipe(
     tap((v) => setHashParam("chain", `${v.type}-${v.value}`))
   ),
