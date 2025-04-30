@@ -1,29 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { getHashParam } from "@/lib/hashParams";
+import { smoldot, smoldotChains } from "@/smoldot";
 import { state, useStateObservable } from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
 import { Dot } from "lucide-react";
 import { createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getSmProvider } from "polkadot-api/sm-provider";
-import { startFromWorker } from "polkadot-api/smoldot/from-worker";
-import SmWorker from "polkadot-api/smoldot/worker?worker";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { concat, finalize, from, map, NEVER, startWith, switchMap } from "rxjs";
-
-const smoldot = startFromWorker(new SmWorker(), {
-  logCallback: (level, target, message) => {
-    console.debug("smoldot[%s(%s)] %s", target, level, message);
-  },
-  forbidWs: true,
-});
-
-const smoldotChains: Record<string, () => Promise<{ chainSpec: string }>> = {
-  polkadot: async () => import("polkadot-api/chains/polkadot"),
-  kusama: async () => import("polkadot-api/chains/ksmcc3"),
-  westend: async () => import("polkadot-api/chains/westend2"),
-  paseo: async () => import("polkadot-api/chains/paseo"),
-};
 
 interface SelectedChain {
   type: "sm" | "ws";
