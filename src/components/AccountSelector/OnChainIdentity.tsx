@@ -26,6 +26,7 @@ export const OnChainIdentity: FC<{
   const format = useStateObservable(format$);
   const pk = getPublicKey(value);
   const valueFormatted = pk ? AccountId(format).dec(pk) : value;
+  console.log(valueFormatted.length);
 
   const identicon = (
     <PolkadotIdenticon className="flex-shrink-0" publicKey={pk} size={28} />
@@ -45,7 +46,7 @@ export const OnChainIdentity: FC<{
       <div className="flex flex-col justify-center text-foreground leading-tight overflow-hidden">
         {name && <span className="inline-flex items-center gap-1">{name}</span>}
         <span className="text-foreground/70 text-ellipsis overflow-hidden">
-          {valueFormatted.slice(0, 16) + "…"}
+          {sliceMiddleAddr(valueFormatted)}
         </span>
       </div>
     </div>
@@ -56,3 +57,5 @@ const getPublicKey = (address: string) => {
   const info = getSs58AddressInfo(address);
   return info.isValid ? info.publicKey : null;
 };
+
+const sliceMiddleAddr = (s: string) => s.slice(0, 10) + "…" + s.slice(-10);

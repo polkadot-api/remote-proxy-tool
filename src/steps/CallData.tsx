@@ -1,25 +1,18 @@
 import { Textarea } from "@/components/ui/textarea";
-import { getHashParam, setHashParam } from "@/lib/hashParams";
+import { getHashParam } from "@/lib/hashParams";
 import { stringify } from "@/lib/json";
+import { cn } from "@/lib/utils";
 import { state, useStateObservable, withDefault } from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
 import { ExternalLink } from "lucide-react";
 import { Binary } from "polkadot-api";
-import {
-  catchError,
-  combineLatest,
-  defer,
-  map,
-  of,
-  switchMap,
-  tap,
-} from "rxjs";
+import { catchError, combineLatest, defer, map, of, switchMap } from "rxjs";
 import { client$, selectedChain$ } from "./SelectChain";
-import { cn } from "@/lib/utils";
 
 const [callDataChange$, setCallData] = createSignal<string>();
-const rawCallData$ = state(
-  callDataChange$.pipe(tap((v) => setHashParam("calldata", v))),
+export const initialHasCallData = !!getHashParam("calldata");
+export const rawCallData$ = state(
+  callDataChange$,
   getHashParam("calldata") ?? ""
 );
 
@@ -41,7 +34,7 @@ export const tx$ = state(
   null
 );
 
-const decodedCallData$ = tx$.pipeState(
+export const decodedCallData$ = tx$.pipeState(
   map((v) => (v ? v.decodedCall : null)),
   withDefault(null)
 );

@@ -1,48 +1,30 @@
-import { FC, PropsWithChildren } from "react";
-import { CallData } from "./steps/CallData";
-import { SelectAccount } from "./steps/SelectAccount";
-import { SelectChain } from "./steps/SelectChain";
-import { SelectMultisig } from "./steps/SelectMultisig";
-import { Submit } from "./steps/Submit";
+import { Subscribe, useStateObservable } from "@react-rxjs/core";
+import { merge } from "rxjs";
+import { Edit } from "./Edit";
+import { Sign } from "./Sign";
+import { Button } from "./components/ui/button";
+import { mode$, setMode } from "./mode";
+import { decodedCallData$ } from "./steps/CallData";
+import { client$ } from "./steps/SelectChain";
+import { multisigAccount$ } from "./steps/SelectMultisig";
 
+const app$ = merge(client$, decodedCallData$, multisigAccount$);
 function App() {
+  const mode = useStateObservable(mode$);
+
   return (
-    <div className="p-2 max-w-2xl m-auto">
-      <h1 className="font-bold text-2xl border-b p-2">PAPI Multisig Tool</h1>
-      <div className="p-2 space-y-2">
-        <Step title="1. Select Chain">
-          <SelectChain />
-        </Step>
-        <hr />
-        <Step title="2. Call Data">
-          <CallData />
-        </Step>
-        <hr />
-        <Step title="3. Select Multisig">
-          <SelectMultisig />
-        </Step>
-        <hr />
-        <Step title="4. Select Account">
-          <SelectAccount />
-        </Step>
-        <hr />
-        <Step title="5. Submit">
-          <Submit />
-        </Step>
+    <Subscribe source$={app$}>
+      <div className="p-2 max-w-2xl m-auto">
+        <div className="flex items-center justify-between border-b">
+          <h1 className="font-bold text-2xl p-2">PAPI Multisig Tool</h1>
+          {mode === "submit" ? (
+            <Button onClick={() => setMode("edit")}>Edit</Button>
+          ) : null}
+        </div>
+        {mode === "edit" ? <Edit /> : <Sign />}
       </div>
-    </div>
+    </Subscribe>
   );
 }
-
-const Step: FC<
-  PropsWithChildren<{
-    title: string;
-  }>
-> = ({ title, children }) => (
-  <div>
-    <h2 className="text-xl">{title}</h2>
-    {children}
-  </div>
-);
 
 export default App;

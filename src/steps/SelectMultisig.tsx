@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { getHashParam, setHashParam } from "@/lib/hashParams";
+import { getHashParam } from "@/lib/hashParams";
 import { accId } from "@/lib/ss58";
 import type { dot } from "@polkadot-api/descriptors";
 import { novasamaProvider } from "@polkadot-api/sdk-accounts";
@@ -36,7 +36,6 @@ import {
   of,
   startWith,
   switchMap,
-  tap,
 } from "rxjs";
 import { tx$ } from "./CallData";
 import { client$ } from "./SelectChain";
@@ -44,19 +43,16 @@ import { client$ } from "./SelectChain";
 const initialSignatories = getHashParam("signatories");
 const initialThreshold = getHashParam("threshold");
 
+export const initialHasMultisig = !!(initialSignatories && initialThreshold);
+
 interface Multisig {
   addresses: string[];
   threshold: number;
 }
 const [multisigSignatoriesChange$, setMultisigSignatories] =
   createSignal<Multisig>();
-const multisigSignatories$ = state(
-  multisigSignatoriesChange$.pipe(
-    tap((v) => {
-      setHashParam("signatories", v.addresses.join("_"));
-      setHashParam("threshold", String(v.threshold));
-    })
-  ),
+export const multisigSignatories$ = state(
+  multisigSignatoriesChange$,
   initialSignatories
     ? {
         addresses: initialSignatories.split("_"),
@@ -122,28 +118,9 @@ export const multisigCall$ = state(
 );
 
 export const SelectMultisig = () => {
-  const multisig = useStateObservable(multisig$);
-  const multisigCall = useStateObservable(multisigCall$);
-
   return (
     <div className="p-2">
-      <div className="space-y-1 mb-2">
-        <FromSignatories />
-      </div>
-      {multisig?.type === "found" ? (
-        multisigCall ? (
-          <div>
-            This multisig call has already started,{" "}
-            {multisigCall.approvals.length} out of {multisig.value.threshold}{" "}
-            approvals so far.
-          </div>
-        ) : (
-          <div>
-            You will create this multisig call as it seems no one else from the
-            group has started it yet.
-          </div>
-        )
-      ) : null}
+      <FromSignatories />
     </div>
   );
 };
@@ -157,7 +134,7 @@ const FromSignatories = () => {
   return (
     <div className="space-y-1">
       <ImportIndexed />
-      <div className="p-2 shadow rounded">
+      <div>
         <div className="flex items-center gap-2">
           <div>Add Signatory</div>
           <Subscribe fallback={null}>
@@ -210,15 +187,13 @@ const FromSignatories = () => {
         </label>
       </div>
       {multisig.addresses.length < 2 ? (
-        <div className="text-orange-600">
-          Multisig needs at least 2 members!
-        </div>
+        <div className="text-orange-600">Multisig needs at least 2 members</div>
       ) : multisig.threshold > multisig.addresses.length ? (
         <div className="text-orange-600">
-          Multisig threshold can't be higher than the amount of members!
+          Multisig threshold can't be higher than the amount of members
         </div>
       ) : (
-        <div>
+        <div className="flex items-center gap-2 py-2">
           <div>Resulting multisig address:</div>
           <OnChainIdentity
             value={accId.dec(
@@ -278,34 +253,35 @@ const ImportIndexedContent: FC<{ onDone: () => void }> = ({ onDone }) => {
   const importedSignatories = useStateObservable(importSignatories$);
 
   return (
-    <Subscribe fallback={null}>
-      <AccountInput
-        className="my-2"
-        value={addr}
-        onChange={importMultisigAddr}
-      />
-
+    <div className="space-y-2">
+      <Subscribe fallback={null}>
+        <AccountInput value={addr} onChange={importMultisigAddr} />
+      </Subscribe>
       {importedSignatories?.result ? (
         <div className="space-y-2">
-          <h4>
-            Signatories (threshold {importedSignatories.result.threshold})
-          </h4>
-          <ul>
-            {importedSignatories.result.addresses.map((address) => (
-              <li key={address}>
-                <OnChainIdentity value={address} />
-              </li>
-            ))}
-          </ul>
-          <Button
-            onClick={() => {
-              if (!importedSignatories.result) return;
-              setMultisigSignatories(importedSignatories.result);
-              onDone();
-            }}
-          >
-            Import
-          </Button>
+          <div>
+            <h4>
+              Signatories (threshold {importedSignatories.result.threshold})
+            </h4>
+            <ul>
+              {importedSignatories.result.addresses.map((address) => (
+                <li key={address}>
+                  <OnChainIdentity value={address} />
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="text-right">
+            <Button
+              onClick={() => {
+                if (!importedSignatories.result) return;
+                setMultisigSignatories(importedSignatories.result);
+                onDone();
+              }}
+            >
+              Import
+            </Button>
+          </div>
         </div>
       ) : null}
       {importedSignatories?.result === null ? (
@@ -314,6 +290,6 @@ const ImportIndexedContent: FC<{ onDone: () => void }> = ({ onDone }) => {
       {addr && !importedSignatories ? (
         <div className="text-muted-foreground">Loading…</div>
       ) : null}
-    </Subscribe>
+    </div>
   );
 };
