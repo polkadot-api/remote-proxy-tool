@@ -42,12 +42,12 @@ export const Edit = () => {
         <SelectChain />
       </Step>
       <hr />
-      <Step title="2. Call Data">
-        <CallData />
+      <Step title="2. Select Multisig">
+        <SelectMultisig />
       </Step>
       <hr />
-      <Step title="3. Select Multisig">
-        <SelectMultisig />
+      <Step title="3. Call Data">
+        <CallData />
       </Step>
       <hr />
       <div className="text-right">
