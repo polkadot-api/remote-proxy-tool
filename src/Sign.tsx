@@ -107,9 +107,8 @@ const ChainStatus = () => {
           <Textarea
             className="border rounded font-mono p-2 text-sm text-foreground/80 max-h-96 overflow-auto"
             readOnly
-          >
-            {stringify(callData)}
-          </Textarea>
+            value={stringify(callData)}
+          />
         ) : (
           <span> Loading…</span>
         )}

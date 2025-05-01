@@ -95,9 +95,8 @@ export const CallData = () => {
         <Textarea
           className="border rounded font-mono p-2 text-sm text-foreground/80 max-h-96 overflow-auto"
           readOnly
-        >
-          {stringify(decodedCallData)}
-        </Textarea>
+          value={stringify(decodedCallData)}
+        />
       ) : null}
     </div>
   );
