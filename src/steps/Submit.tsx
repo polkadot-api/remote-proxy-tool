@@ -47,13 +47,17 @@ const multisigSigner$ = state(
 );
 
 const hasAlreadyApproved$ = state(
-  combineLatest([multisigCall$, selectedSigner$]).pipe(
-    map(([multisigCall, selectedSigner]) => {
-      if (!multisigCall || !selectedSigner) return false;
+  combineLatest([multisigCall$, multisigAccount$, selectedSigner$]).pipe(
+    map(([multisigCall, multisig, selectedSigner]) => {
+      if (!multisigCall || !multisig || !selectedSigner) return false;
       const signerSs58 = accId.dec(selectedSigner.publicKey);
 
-      return multisigCall.approvals.some(
-        (approval) => genericSS58(approval) === signerSs58
+      // if we have reached the threshold, don't mark it as "already approved", because it needs another call to get it executed.
+      return (
+        multisigCall.approvals.length < multisig.threshold &&
+        multisigCall.approvals.some(
+          (approval) => genericSS58(approval) === signerSs58
+        )
       );
     })
   ),

@@ -1,14 +1,16 @@
 import { useStateObservable } from "@react-rxjs/core";
-import { Dot } from "lucide-react";
+import { Dot, PenTool } from "lucide-react";
+import { OnChainIdentity } from "./components/AccountSelector/OnChainIdentity";
 import { Step } from "./components/Step";
 import { Textarea } from "./components/ui/textarea";
 import { stringify } from "./lib/json";
+import { genericSS58 } from "./lib/ss58";
+import { cn } from "./lib/utils";
 import { decodedCallData$ } from "./steps/CallData";
 import { SelectAccount } from "./steps/SelectAccount";
 import { client$, selectedChain$ } from "./steps/SelectChain";
-import { Submit } from "./steps/Submit";
 import { multisigAccount$, multisigCall$ } from "./steps/SelectMultisig";
-import { OnChainIdentity } from "./components/AccountSelector/OnChainIdentity";
+import { Submit } from "./steps/Submit";
 
 export const Sign = () => {
   const client = useStateObservable(client$);
@@ -38,6 +40,8 @@ const ChainStatus = () => {
   const multisig = useStateObservable(multisigAccount$)!;
   const multisigCall = useStateObservable(multisigCall$);
 
+  const genericApprovals = multisigCall?.approvals.map(genericSS58) ?? [];
+
   return (
     <div className="space-y-2">
       <div className="flex items-center">
@@ -52,12 +56,28 @@ const ChainStatus = () => {
         </div>
         <div>
           <p>Signatories:</p>
-          <ul className="pl-2">
-            {multisig.addresses.map((addr) => (
-              <li key={addr}>
-                <OnChainIdentity value={addr} />
-              </li>
-            ))}
+          <ul className="pl-1">
+            {multisig.addresses.map((addr) => {
+              const hasSigned = genericApprovals.includes(genericSS58(addr));
+              return (
+                <li key={addr} className="flex items-center gap-2">
+                  <div
+                    title={hasSigned ? "Approved" : "Pending"}
+                    className="py-1 mt-1"
+                  >
+                    <PenTool
+                      strokeWidth={1}
+                      className={cn(
+                        hasSigned
+                          ? "text-green-600"
+                          : "text-muted-foreground/50"
+                      )}
+                    />
+                  </div>
+                  <OnChainIdentity value={addr} />
+                </li>
+              );
+            })}
           </ul>
         </div>
         <p>Threshold: {multisig.threshold}</p>
