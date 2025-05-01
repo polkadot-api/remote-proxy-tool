@@ -1,6 +1,6 @@
 export const getHashParams = (location?: Location) => {
   location = location ?? globalThis.location;
-  if (location.hash) return new URLSearchParams(location.hash.slice(1));
+  if (location.search) return new URLSearchParams(location.search.slice(1));
   return new URLSearchParams();
 };
 
@@ -15,7 +15,7 @@ export const setHashParams = (
     else params.set(param, value);
   });
 
-  history.replaceState(null, "", "#" + params.toString());
+  history.replaceState(null, "", "?" + params.toString());
 };
 
 export const getHashParam = (name: string) => getHashParams().get(name);
