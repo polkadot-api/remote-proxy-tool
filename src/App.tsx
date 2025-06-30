@@ -6,9 +6,8 @@ import { Button } from "./components/ui/button";
 import { mode$, setMode } from "./mode";
 import { decodedCallData$ } from "./steps/CallData";
 import { client$ } from "./steps/SelectChain";
-import { multisigAccount$ } from "./steps/SelectMultisig";
 
-const app$ = merge(client$, decodedCallData$, multisigAccount$);
+const app$ = merge(client$, decodedCallData$);
 function App() {
   const mode = useStateObservable(mode$);
 

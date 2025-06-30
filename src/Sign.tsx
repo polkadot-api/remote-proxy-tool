@@ -9,8 +9,8 @@ import { cn } from "./lib/utils";
 import { decodedCallData$ } from "./steps/CallData";
 import { SelectAccount } from "./steps/SelectAccount";
 import { client$, selectedChain$ } from "./steps/SelectChain";
-import { multisigAccount$, multisigCall$ } from "./steps/SelectMultisig";
-import { Submit } from "./steps/Submit";
+import { multisigAccount$ } from "./steps/SelectProxy";
+import { multisigCall$, Submit } from "./steps/Submit";
 
 export const Sign = () => {
   const client = useStateObservable(client$);
@@ -45,7 +45,7 @@ const ChainStatus = () => {
   return (
     <div className="space-y-2">
       <div className="flex items-center">
-        <div>Chain: {chain.value}</div>
+        <div>Chain: {chain.para}</div>
         <Dot className={client ? "text-green-500" : "text-orange-300"} />
         <div>{client ? "Connected" : "Connecting…"}</div>
       </div>

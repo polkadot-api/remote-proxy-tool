@@ -292,3 +292,36 @@ export const proxySigners$ = state(
   ),
   null
 );
+
+const multisig$ = state(
+  multisigSignatories$.pipe(
+    map((multisig) =>
+      multisig &&
+      multisig.addresses.length >= 2 &&
+      multisig.threshold <= multisig.addresses.length
+        ? {
+            type: "found" as const,
+            value: multisig,
+          }
+        : null
+    )
+  ),
+  null
+);
+
+export const multisigAccount$ = multisig$.pipeState(
+  map((v) => v?.value ?? null),
+  map((v) => {
+    if (!v) return null;
+    return {
+      ...v,
+      multisigId: accId.dec(
+        getMultisigAccountId({
+          threshold: v.threshold,
+          signatories: v.addresses.map(accId.enc),
+        })
+      ),
+    };
+  }),
+  startWith(null)
+);

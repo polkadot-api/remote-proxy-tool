@@ -1,55 +1,99 @@
 import { Button } from "@/components/ui/button";
+import { stringify } from "@/lib/json";
+import { accId, genericSS58 } from "@/lib/ss58";
 import { dot } from "@polkadot-api/descriptors";
-import { getMultisigSigner } from "@polkadot-api/meta-signers";
+import { Binary, Blake2256 } from "@polkadot-api/substrate-bindings";
 import { state, useStateObservable } from "@react-rxjs/core";
+import { createSignal } from "@react-rxjs/utils";
+import { TriangleAlert } from "lucide-react";
+import { InvalidTxError, TxEvent } from "polkadot-api";
+import { FC } from "react";
 import {
   catchError,
   combineLatest,
   exhaustMap,
   map,
   of,
+  switchMap,
   withLatestFrom,
 } from "rxjs";
 import { tx$ } from "./CallData";
-import { client$ } from "./SelectChain";
-import { multisigAccount$, multisigCall$ } from "./SelectMultisig";
-import { createSignal } from "@react-rxjs/utils";
-import { accId, genericSS58 } from "@/lib/ss58";
-import { TriangleAlert } from "lucide-react";
-import { FC } from "react";
-import { InvalidTxError, TxEvent } from "polkadot-api";
-import { stringify } from "@/lib/json";
+import { selectedAccount$ } from "./SelectAccount";
+import { client$, clients$ } from "./SelectChain";
+import { multisigAccount$, proxyAddress$ } from "./SelectProxy";
 
-const multisigSigner$ = state(
-  combineLatest([client$, multisigAccount$, []]).pipe(
-    map(([client, multisigAccount, selectedSigner]) => {
-      if (!client || !multisigAccount || !selectedSigner) return null;
-
-      const unsafeApi = client.getUnsafeApi<typeof dot>();
-      try {
-        return getMultisigSigner(
-          {
-            threshold: multisigAccount.threshold,
-            signatories: multisigAccount.addresses,
-          },
-          unsafeApi.query.Multisig.Multisigs.getValue,
-          unsafeApi.apis.TransactionPaymentApi.query_info,
-          selectedSigner
-        );
-      } catch (ex) {
-        console.error(ex);
+const multisigProxySigner$ = state(
+  combineLatest([
+    selectedAccount$,
+    proxyAddress$,
+    multisigAccount$,
+    clients$,
+  ]).pipe(
+    map(([selectedAccount, proxyAddress, multisigAccount, clients]) => {
+      if (!selectedAccount || !proxyAddress || !multisigAccount || !clients)
         return null;
-      }
+
+      return clients.sdk.getMultisigProxiedSigner(
+        proxyAddress,
+        {
+          threshold: multisigAccount.threshold,
+          signatories: multisigAccount.addresses,
+        },
+        selectedAccount.polkadotSigner
+      );
+    })
+  ),
+  null
+);
+
+const wrappedTx$ = combineLatest([
+  client$,
+  proxyAddress$,
+  tx$.pipe(map((tx) => tx?.decodedCall ?? null)),
+]).pipe(
+  map(([client, proxyAddr, tx]) =>
+    tx && client && proxyAddr
+      ? client
+          .getUnsafeApi()
+          .tx.RemoteProxyRelayChain.remote_proxy_with_registered_proof({
+            real: {
+              type: "Id",
+              value: proxyAddr,
+            },
+            call: tx,
+          })
+      : null
+  )
+);
+
+export const multisigCall$ = state(
+  combineLatest([
+    client$,
+    wrappedTx$.pipe(
+      switchMap((tx) => tx?.getEncodedData() ?? of(null)),
+      map((v) => (v ? Blake2256(v.asBytes()) : null))
+    ),
+    multisigAccount$,
+  ]).pipe(
+    switchMap(([client, callHash, account]) => {
+      if (!client || !callHash || !account) return of(null);
+
+      return client
+        .getUnsafeApi<typeof dot>()
+        .query.Multisig.Multisigs.watchValue(
+          account.multisigId,
+          Binary.fromBytes(callHash)
+        );
     })
   ),
   null
 );
 
 const hasAlreadyApproved$ = state(
-  combineLatest([multisigCall$, multisigAccount$, []]).pipe(
+  combineLatest([multisigCall$, multisigAccount$, selectedAccount$]).pipe(
     map(([multisigCall, multisig, selectedSigner]) => {
       if (!multisigCall || !multisig || !selectedSigner) return false;
-      const signerSs58 = accId.dec(selectedSigner.publicKey);
+      const signerSs58 = accId.dec(selectedSigner.polkadotSigner.publicKey);
 
       // if we have reached the threshold, don't mark it as "already approved", because it needs another call to get it executed.
       return (
@@ -64,7 +108,7 @@ const hasAlreadyApproved$ = state(
 );
 
 const isReady$ = state(
-  combineLatest([multisigSigner$, tx$]).pipe(
+  combineLatest([multisigProxySigner$, tx$]).pipe(
     map(([signer, tx]) => Boolean(signer && tx))
   ),
   false
@@ -73,7 +117,7 @@ const isReady$ = state(
 const [submit$, submit] = createSignal();
 const txStatus$ = state(
   submit$.pipe(
-    withLatestFrom(multisigSigner$, tx$),
+    withLatestFrom(multisigProxySigner$, tx$),
     exhaustMap(([, signer, tx]) => {
       if (!signer || !tx) return of(null);
       return tx.signSubmitAndWatch(signer).pipe(
