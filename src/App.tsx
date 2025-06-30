@@ -16,7 +16,7 @@ function App() {
     <Subscribe source$={app$}>
       <div className="p-2 max-w-2xl m-auto">
         <div className="flex items-center justify-between border-b">
-          <h1 className="font-bold text-2xl p-2">PAPI Multisig Tool</h1>
+          <h1 className="font-bold text-2xl p-2">PAPI Remote Proxy Tool</h1>
           {mode === "submit" ? (
             <Button onClick={() => setMode("edit")}>Edit</Button>
           ) : null}

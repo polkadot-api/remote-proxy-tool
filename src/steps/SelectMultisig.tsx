@@ -237,7 +237,7 @@ const importMultisigAddr$ = state(importMultisigAddrChange$, null);
 const importSignatories$ = importMultisigAddr$.pipeState(
   switchMap((v) =>
     (v
-      ? from(novasamaProvider(v)).pipe(
+      ? from(novasamaProvider("polkadot")(v)).pipe(
           map((result) => ({
             result,
           }))

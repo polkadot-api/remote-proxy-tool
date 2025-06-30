@@ -11,6 +11,7 @@ import {
   multisigSignatories$,
   SelectMultisig,
 } from "./steps/SelectMultisig";
+import { SelectProxy } from "./steps/SelectProxy";
 
 const isReady$ = state(
   combineLatest([selectedChain$, tx$, multisigAccount$]).pipe(
@@ -26,7 +27,7 @@ const setUrl = async () => {
     firstValueFrom(multisigSignatories$),
   ]);
   setHashParams({
-    chain: `${chain.type}-${chain.value}`,
+    ...chain,
     calldata: callData,
     signatories: multisig!.addresses.join("_"),
     threshold: String(multisig!.threshold),
@@ -42,8 +43,8 @@ export const Edit = () => {
         <SelectChain />
       </Step>
       <hr />
-      <Step title="2. Select Multisig">
-        <SelectMultisig />
+      <Step title="2. Select Proxy">
+        <SelectProxy />
       </Step>
       <hr />
       <Step title="3. Call Data">
