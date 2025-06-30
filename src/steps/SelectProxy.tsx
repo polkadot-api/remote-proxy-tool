@@ -3,11 +3,12 @@ import { OnChainIdentity } from "@/components/AccountSelector/OnChainIdentity";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getHashParam } from "@/lib/hashParams";
-import { accId } from "@/lib/ss58";
+import { accId, genericSS58 } from "@/lib/ss58";
 import { dot } from "@polkadot-api/descriptors";
 import { novasamaProvider } from "@polkadot-api/sdk-accounts";
 import {
   getMultisigAccountId,
+  HexString,
   SS58String,
 } from "@polkadot-api/substrate-bindings";
 import { toHex } from "@polkadot-api/utils";
@@ -247,3 +248,47 @@ const ManualMultisig = () => {
     </>
   );
 };
+
+export const proxySigners$ = state(
+  combineLatest({
+    delegates: proxyDelegates$,
+    multisigs: delegateMultisigs$,
+    manualMultisig: multisigSignatories$,
+  }).pipe(
+    map(({ delegates, multisigs, manualMultisig }) => {
+      const delegateAddresses = new Set<HexString>(
+        (delegates?.map((d) => d.delegate) ?? []).map(genericSS58)
+      );
+
+      const manualMultisigAddress =
+        manualMultisig &&
+        accId.dec(
+          getMultisigAccountId({
+            threshold: manualMultisig.threshold,
+            signatories: manualMultisig.addresses.map(accId.enc),
+          })
+        );
+
+      const delegateEntries = Array.from(delegateAddresses).map((address) => ({
+        address,
+        multisig: null,
+      }));
+
+      const multisigEntries = [
+        ...Object.values(multisigs ?? {}),
+        ...(delegateAddresses.has(manualMultisigAddress!)
+          ? [manualMultisig!]
+          : []),
+      ].flatMap(
+        (multisig) =>
+          multisig?.addresses.map((address) => ({
+            address: genericSS58(address),
+            multisig,
+          })) ?? []
+      );
+
+      return [...delegateEntries, ...multisigEntries];
+    })
+  ),
+  null
+);

@@ -11,7 +11,6 @@ import {
   withLatestFrom,
 } from "rxjs";
 import { tx$ } from "./CallData";
-import { selectedSigner$ } from "./SelectAccount";
 import { client$ } from "./SelectChain";
 import { multisigAccount$, multisigCall$ } from "./SelectMultisig";
 import { createSignal } from "@react-rxjs/utils";
@@ -22,7 +21,7 @@ import { InvalidTxError, TxEvent } from "polkadot-api";
 import { stringify } from "@/lib/json";
 
 const multisigSigner$ = state(
-  combineLatest([client$, multisigAccount$, selectedSigner$]).pipe(
+  combineLatest([client$, multisigAccount$, []]).pipe(
     map(([client, multisigAccount, selectedSigner]) => {
       if (!client || !multisigAccount || !selectedSigner) return null;
 
@@ -47,7 +46,7 @@ const multisigSigner$ = state(
 );
 
 const hasAlreadyApproved$ = state(
-  combineLatest([multisigCall$, multisigAccount$, selectedSigner$]).pipe(
+  combineLatest([multisigCall$, multisigAccount$, []]).pipe(
     map(([multisigCall, multisig, selectedSigner]) => {
       if (!multisigCall || !multisig || !selectedSigner) return false;
       const signerSs58 = accId.dec(selectedSigner.publicKey);

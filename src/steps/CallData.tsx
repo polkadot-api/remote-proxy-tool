@@ -39,16 +39,20 @@ export const decodedCallData$ = tx$.pipeState(
   withDefault(null)
 );
 
+const chainIdMapping: Record<string, string> = {
+  kusamaAh: "kusama_asset_hub",
+};
+
 const consoleChainParam$ = selectedChain$.pipeState(
   map((v) => {
     if (!v) return "";
     const params = new URLSearchParams();
     if (v.type === "ws") {
       params.set("networkId", "custom");
-      params.set("endpoint", v.value);
+      params.set("endpoint", v.para);
     } else {
       params.set("endpoint", "light-client");
-      params.set("networkId", v.value);
+      params.set("networkId", chainIdMapping[v.para] ?? v.para);
     }
     return `#` + params.toString();
   }),
