@@ -20,28 +20,50 @@ import {
 import { tx$ } from "./CallData";
 import { selectedAccount$ } from "./SelectAccount";
 import { client$, clients$ } from "./SelectChain";
-import { multisigAccount$, proxyAddress$ } from "./SelectProxy";
+import { multisigAccount$, proxyAddress$, proxySigners$ } from "./SelectProxy";
 
-const multisigProxySigner$ = state(
+const proxySigner$ = state(
   combineLatest([
     selectedAccount$,
     proxyAddress$,
+    proxySigners$,
     multisigAccount$,
     clients$,
   ]).pipe(
-    map(([selectedAccount, proxyAddress, multisigAccount, clients]) => {
-      if (!selectedAccount || !proxyAddress || !multisigAccount || !clients)
-        return null;
-
-      return clients.sdk.getMultisigProxiedSigner(
+    map(
+      ([
+        selectedAccount,
         proxyAddress,
-        {
-          threshold: multisigAccount.threshold,
-          signatories: multisigAccount.addresses,
-        },
-        selectedAccount.polkadotSigner
-      );
-    })
+        proxySigners,
+        multisigAccount,
+        clients,
+      ]) => {
+        if (!selectedAccount || !proxyAddress || !proxySigners || !clients)
+          return null;
+
+        const signerInfo = proxySigners.find(
+          (signer) => genericSS58(selectedAccount.address) === signer.address
+        );
+        if (!signerInfo) return null;
+
+        if (signerInfo.multisig) {
+          if (!multisigAccount) return null;
+          return clients.sdk.getMultisigProxiedSigner(
+            proxyAddress,
+            {
+              threshold: multisigAccount.threshold,
+              signatories: multisigAccount.addresses,
+            },
+            selectedAccount.polkadotSigner
+          );
+        }
+
+        return clients.sdk.getProxiedSigner(
+          proxyAddress,
+          selectedAccount.polkadotSigner
+        );
+      }
+    )
   ),
   null
 );
@@ -108,7 +130,7 @@ const hasAlreadyApproved$ = state(
 );
 
 const isReady$ = state(
-  combineLatest([multisigProxySigner$, tx$]).pipe(
+  combineLatest([proxySigner$, tx$]).pipe(
     map(([signer, tx]) => Boolean(signer && tx))
   ),
   false
@@ -117,7 +139,7 @@ const isReady$ = state(
 const [submit$, submit] = createSignal();
 const txStatus$ = state(
   submit$.pipe(
-    withLatestFrom(multisigProxySigner$, tx$),
+    withLatestFrom(proxySigner$, tx$),
     exhaustMap(([, signer, tx]) => {
       if (!signer || !tx) return of(null);
       return tx.signSubmitAndWatch(signer).pipe(

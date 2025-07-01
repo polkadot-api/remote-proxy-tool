@@ -7,8 +7,9 @@ import { genericSS58 } from "./lib/ss58";
 import { setMode } from "./mode";
 import { CallData, rawCallData$, tx$ } from "./steps/CallData";
 import { SelectAccount, selectedAccount$ } from "./steps/SelectAccount";
-import { clients$, SelectChain, selectedChain$ } from "./steps/SelectChain";
+import { SelectChain, selectedChain$ } from "./steps/SelectChain";
 import { proxyAddress$, proxySigners$, SelectProxy } from "./steps/SelectProxy";
+import { Submit } from "./steps/Submit";
 
 export const Edit = () => {
   const isReady = useStateObservable(isReady$);
@@ -32,37 +33,29 @@ export const Edit = () => {
         <CallData />
       </Step>
       <hr />
-      {submitAction && (
-        <div className="text-right">
-          {submitAction.type === "multisig" ? (
-            <Button
-              disabled={!isReady}
-              onClick={async () => {
-                await setUrl();
-                setMode("submit");
-              }}
-            >
-              Generate call URL
-            </Button>
-          ) : (
-            <Button>Sign and submit</Button>
-          )}
-        </div>
-      )}
+      {submitAction ? (
+        submitAction.type === "multisig" ? (
+          <Button
+            disabled={!isReady}
+            onClick={async () => {
+              await setUrl();
+              setMode("submit");
+            }}
+          >
+            Generate call URL
+          </Button>
+        ) : (
+          <Submit />
+        )
+      ) : null}
     </div>
   );
 };
 
 const submitAction$ = state(
-  combineLatest([
-    selectedAccount$,
-    proxyAddress$,
-    proxySigners$,
-    clients$,
-  ]).pipe(
-    map(([selectedAccount, proxyAddress, proxySigners, clients]) => {
-      if (!selectedAccount || !proxyAddress || !proxySigners || !clients)
-        return null;
+  combineLatest([selectedAccount$, proxyAddress$, proxySigners$]).pipe(
+    map(([selectedAccount, proxyAddress, proxySigners]) => {
+      if (!selectedAccount || !proxyAddress || !proxySigners) return null;
 
       const signerInfo = proxySigners.find(
         (signer) => genericSS58(selectedAccount.address) === signer.address
@@ -77,10 +70,6 @@ const submitAction$ = state(
           }
         : {
             type: "direct" as const,
-            signer: clients.sdk.getProxiedSigner(
-              proxyAddress,
-              selectedAccount.polkadotSigner
-            ),
           };
     })
   ),

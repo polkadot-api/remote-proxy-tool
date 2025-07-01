@@ -26,6 +26,8 @@ import { clients$ } from "./SelectChain";
 const getMultisig = novasamaProvider("kusama");
 
 const initialProxy = getHashParam("proxy");
+export const hasInitialProxy = !!initialProxy;
+
 const [proxyAddrChange$, setProxyAddress] = createSignal<SS58String>();
 export const proxyAddress$ = state(proxyAddrChange$, initialProxy ?? null);
 
@@ -76,7 +78,7 @@ const delegateMultisigs$ = proxyDelegates$.pipeState(
   withDefault(null)
 );
 
-const ProxyDelegates = () => {
+export const ProxyDelegates = () => {
   const delegates = useStateObservable(proxyDelegates$);
   const multisigDelegates = useStateObservable(delegateMultisigs$);
 
@@ -91,33 +93,38 @@ const ProxyDelegates = () => {
   }
 
   return (
-    <ul>
-      {delegates.map((d, i) => (
-        <li key={i}>
-          <OnChainIdentity value={d.delegate} />
-          {multisigDelegates?.[d.delegate] ? (
-            <div>
-              <div>
-                Ackchyually a multisig threshold{" "}
-                {multisigDelegates[d.delegate]!.threshold}!
+    <div>
+      <div>Delegates:</div>
+      <ul className="pl-4">
+        {delegates.map((d, i) => (
+          <li key={i}>
+            <OnChainIdentity value={d.delegate} />
+            {multisigDelegates?.[d.delegate] ? (
+              <div className="pl-4">
+                <div>
+                  Ackchyually a multisig threshold{" "}
+                  {multisigDelegates[d.delegate]!.threshold}!
+                </div>
+                <ul>
+                  {multisigDelegates[d.delegate]!.addresses.map((addr) => (
+                    <li key={addr}>
+                      <OnChainIdentity value={addr} />
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul>
-                {multisigDelegates[d.delegate]!.addresses.map((addr) => (
-                  <li key={addr}>
-                    <OnChainIdentity value={addr} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 };
 
 const initialSignatories = getHashParam("signatories");
 const initialThreshold = getHashParam("threshold");
+
+export const hasInitialMultisig = initialSignatories && initialThreshold;
 
 interface Multisig {
   addresses: string[];

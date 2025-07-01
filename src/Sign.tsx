@@ -9,7 +9,11 @@ import { cn } from "./lib/utils";
 import { decodedCallData$ } from "./steps/CallData";
 import { SelectAccount } from "./steps/SelectAccount";
 import { client$, selectedChain$ } from "./steps/SelectChain";
-import { multisigAccount$ } from "./steps/SelectProxy";
+import {
+  multisigAccount$,
+  proxyAddress$,
+  ProxyDelegates,
+} from "./steps/SelectProxy";
 import { multisigCall$, Submit } from "./steps/Submit";
 
 export const Sign = () => {
@@ -39,6 +43,7 @@ const ChainStatus = () => {
   const callData = useStateObservable(decodedCallData$);
   const multisig = useStateObservable(multisigAccount$)!;
   const multisigCall = useStateObservable(multisigCall$);
+  const proxy = useStateObservable(proxyAddress$)!;
 
   const genericApprovals = multisigCall?.approvals.map(genericSS58) ?? [];
 
@@ -48,6 +53,13 @@ const ChainStatus = () => {
         <div>Chain: {chain.para}</div>
         <Dot className={client ? "text-green-500" : "text-orange-300"} />
         <div>{client ? "Connected" : "Connecting…"}</div>
+      </div>
+      <div>
+        <div className="flex items-center gap-2">
+          <span>Proxy:</span>
+          <OnChainIdentity value={proxy} />
+        </div>
+        <ProxyDelegates />
       </div>
       <div>
         <div className="flex items-center gap-2">
