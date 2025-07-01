@@ -27,7 +27,7 @@ export const Sign = () => {
       <div className="py-2">
         <h1 className="font-bold text-3xl">Review & Sign Transaction</h1>
         <h3 className="text-muted-foreground">
-          A multisig transaction is ready for your approval.
+          A remote proxy multisig transaction is ready for your approval.
         </h3>
       </div>
       <div className="rounded-lg shadow bg-background">
@@ -82,20 +82,24 @@ const ChainStatus = () => {
   return (
     <>
       <div className="p-4">
-        <div className="text-muted-foreground text-sm font-medium">Chain</div>
-        <div className="flex items-center">
-          <div className="capitalize">{chain.para}</div>
-          <Dot className={client ? "text-green-500" : "text-orange-300"} />
-          <div>{client ? "Connected" : "Connecting…"}</div>
+        <div className="py-2 pt-0 border-b">
+          <div className="text-muted-foreground text-sm font-medium">Chain</div>
+          <div className="flex items-center">
+            <div className="capitalize">{chain.para}</div>
+            <Dot className={client ? "text-green-500" : "text-orange-300"} />
+            <div>{client ? "Connected" : "Connecting…"}</div>
+          </div>
+        </div>
+        <div className="py-2 border-b">
+          <div className="text-muted-foreground text-sm font-medium">
+            Proxy Account
+          </div>
+          <OnChainIdentity value={proxy} />
+        </div>
+        <div className="py-2">
+          <ProxyDelegates />
         </div>
       </div>
-      <div className="p-4">
-        <div className="text-muted-foreground text-sm font-medium">
-          Proxy Account
-        </div>
-        <OnChainIdentity value={proxy} />
-      </div>
-      <ProxyDelegates />
       <div className="bg-accent/20 border-y p-4 space-y-2">
         <div className="flex items-center gap-2">
           <Users size={20} />

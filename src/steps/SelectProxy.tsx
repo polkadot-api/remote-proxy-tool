@@ -78,7 +78,7 @@ export const ProxyDelegates = () => {
   const multisigDelegates = useStateObservable(delegateMultisigs$);
 
   if (!delegates) {
-    return <div>Loading…</div>;
+    return <div className="text-sm text-muted-foreground">Loading…</div>;
   }
 
   if (!delegates.length) {
@@ -89,8 +89,8 @@ export const ProxyDelegates = () => {
 
   return (
     <div>
-      <div>Delegates:</div>
-      <ul className="pl-4">
+      <div className="text-muted-foreground text-sm font-medium">Delegates</div>
+      <ul>
         {delegates.map((d, i) => (
           <li key={i}>
             <OnChainIdentity value={d.delegate} />
