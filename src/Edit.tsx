@@ -37,19 +37,28 @@ export const Edit = () => {
   const isReady = useStateObservable(isReady$);
 
   return (
-    <div className="p-2 space-y-2">
-      <Step title="1. Select Chain">
+    <div className="p-2 space-y-4">
+      <Step
+        number={1}
+        title="Select Chain"
+        subtitle="Choose a chain o provide a custom RPC URL"
+      >
         <SelectChain />
       </Step>
-      <hr />
-      <Step title="2. Select Multisig">
+      <Step
+        number={2}
+        title="Select Multisig"
+        subtitle="Import or enter the multisig details"
+      >
         <SelectMultisig />
       </Step>
-      <hr />
-      <Step title="3. Call Data">
+      <Step
+        number={3}
+        title="Call Data"
+        subtitle="Create the transaction payload to be executed"
+      >
         <CallData />
       </Step>
-      <hr />
       <div className="text-right">
         <Button
           disabled={!isReady}

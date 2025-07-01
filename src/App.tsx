@@ -15,10 +15,17 @@ function App() {
   return (
     <Subscribe source$={app$}>
       <div className="p-2 max-w-2xl m-auto">
-        <div className="flex items-center justify-between border-b">
-          <h1 className="font-bold text-2xl p-2">PAPI Multisig Tool</h1>
+        <div className="relative">
+          <h1 className="text-center font-bold text-2xl p-2">
+            PAPI Multisig Tool
+          </h1>
           {mode === "submit" ? (
-            <Button onClick={() => setMode("edit")}>Edit</Button>
+            <Button
+              className="absolute right-0 top-1/2 -translate-y-1/2"
+              onClick={() => setMode("edit")}
+            >
+              Edit
+            </Button>
           ) : null}
         </div>
         {mode === "edit" ? <Edit /> : <Sign />}

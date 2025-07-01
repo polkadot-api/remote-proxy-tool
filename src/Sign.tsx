@@ -11,21 +11,30 @@ import { SelectAccount } from "./steps/SelectAccount";
 import { client$, selectedChain$ } from "./steps/SelectChain";
 import { multisigAccount$, multisigCall$ } from "./steps/SelectMultisig";
 import { Submit } from "./steps/Submit";
+import { twMerge } from "tailwind-merge";
 
 export const Sign = () => {
   const client = useStateObservable(client$);
 
   return (
-    <div className="p-2 space-y-2">
+    <div className="p-2 space-y-4">
       <div>
         <ChainStatus />
       </div>
-      <div className={client ? "" : "opacity-50 pointer-events-none"}>
-        <Step title="1. Select Account">
+      <div
+        className={twMerge(
+          "space-y-4",
+          client ? "" : "opacity-50 pointer-events-none"
+        )}
+      >
+        <Step
+          number={1}
+          title="Select Account"
+          subtitle="Connect your wallet and choose an account to sign the transaction."
+        >
           <SelectAccount />
         </Step>
-        <hr />
-        <Step title="2. Submit">
+        <Step number={2} title="Submit" subtitle="Submit your signature">
           <Submit />
         </Step>
       </div>
