@@ -38,6 +38,7 @@ export const Edit = () => {
 
   return (
     <div className="p-2 space-y-4">
+      <h1 className="text-center font-bold text-2xl p-2">PAPI Multisig Tool</h1>
       <Step
         number={1}
         title="Select Chain"
