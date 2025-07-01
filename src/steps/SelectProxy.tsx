@@ -12,14 +12,9 @@ import {
   SS58String,
 } from "@polkadot-api/substrate-bindings";
 import { toHex } from "@polkadot-api/utils";
-import {
-  state,
-  Subscribe,
-  useStateObservable,
-  withDefault,
-} from "@react-rxjs/core";
+import { state, useStateObservable, withDefault } from "@react-rxjs/core";
 import { createSignal } from "@react-rxjs/utils";
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { combineLatest, filter, from, map, startWith, switchMap } from "rxjs";
 import { clients$ } from "./SelectChain";
 
@@ -126,32 +121,42 @@ const initialThreshold = getHashParam("threshold");
 
 export const hasInitialMultisig = initialSignatories && initialThreshold;
 
-interface Multisig {
-  addresses: string[];
+interface MultisigInput {
+  addresses: (string | null)[];
   threshold: number;
 }
 const [multisigSignatoriesChange$, setMultisigSignatories] =
-  createSignal<Multisig | null>();
-const multisigSignatories$ = state(
+  createSignal<MultisigInput | null>();
+const signatoriesArr = initialSignatories?.split("_") ?? [];
+const initialAddresses =
+  signatoriesArr.length >= 2
+    ? signatoriesArr
+    : [
+        ...signatoriesArr,
+        ...(new Array(2 - signatoriesArr.length).fill(null) as null[]),
+      ];
+
+const multisigSignatoriesInput$ = state(
   multisigSignatoriesChange$,
   initialSignatories
     ? {
-        addresses: initialSignatories.split("_"),
+        addresses: initialAddresses,
         threshold: initialThreshold ? Number(initialThreshold) : 1,
       }
     : null
 );
 
 const ManualMultisig = () => {
-  const multisig = useStateObservable(multisigSignatories$);
+  const multisig = useStateObservable(multisigSignatoriesInput$);
   const delegates = useStateObservable(proxyDelegates$);
 
   const accountId =
-    multisig &&
-    getMultisigAccountId({
-      threshold: multisig.threshold,
-      signatories: multisig.addresses.map(accId.enc),
-    });
+    multisig && multisig.addresses.every((addr) => addr != null)
+      ? getMultisigAccountId({
+          threshold: multisig.threshold,
+          signatories: multisig.addresses.map(accId.enc),
+        })
+      : null;
 
   return (
     <>
@@ -164,7 +169,7 @@ const ManualMultisig = () => {
               multisig
                 ? null
                 : {
-                    addresses: [],
+                    addresses: new Array(2).fill(null),
                     threshold: 1,
                   }
             )
@@ -175,24 +180,22 @@ const ManualMultisig = () => {
       {multisig ? (
         <>
           <div>
-            <div className="flex items-center gap-2">
-              <div>Add Signatory</div>
-              <Subscribe fallback={null}>
-                <AccountInput
-                  className="my-2"
-                  value={null}
-                  onChange={(account) =>
-                    setMultisigSignatories({
-                      ...multisig,
-                      addresses: [...new Set([...multisig.addresses, account])],
-                    })
-                  }
-                />
-              </Subscribe>
-            </div>
+            <div className="text-sm font-medium">Signatories</div>
             <ul>
-              {multisig.addresses.map((addr) => (
-                <li key={addr} className="flex items-center gap-2 py-1">
+              {multisig.addresses.map((addr, i) => (
+                <li key={i} className="flex items-center gap-2 py-1">
+                  <AccountInput
+                    className="grow"
+                    value={addr}
+                    onChange={(account) =>
+                      setMultisigSignatories({
+                        ...multisig,
+                        addresses: multisig.addresses.map((v, idx) =>
+                          idx === i ? account : v
+                        ),
+                      })
+                    }
+                  />
                   <Button
                     type="button"
                     variant="outline"
@@ -200,33 +203,48 @@ const ManualMultisig = () => {
                     onClick={() => {
                       setMultisigSignatories({
                         ...multisig,
-                        addresses: multisig.addresses.filter((v) => v !== addr),
+                        addresses: multisig.addresses.filter(
+                          (_, idx) => idx !== i
+                        ),
                       });
                     }}
+                    disabled={multisig.addresses.length <= 2}
                   >
                     <Trash2 />
                   </Button>
-                  <OnChainIdentity value={addr} />
                 </li>
               ))}
             </ul>
-            <label className="flex items-center gap-2 justify-start">
-              <div>Threshold</div>
-              <Input
-                className="w-auto"
-                type="number"
-                min="1"
-                value={multisig.threshold}
-                onChange={(evt) => {
-                  setMultisigSignatories({
-                    ...multisig,
-                    threshold: Math.floor(evt.target.valueAsNumber),
-                  });
-                }}
-              />
-            </label>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                setMultisigSignatories({
+                  ...multisig,
+                  addresses: [...multisig.addresses, null],
+                })
+              }
+            >
+              <Plus />
+              Add Signatory
+            </Button>
           </div>
-          {multisig.addresses.length < 2 ? (
+          <label className="block">
+            <div className="text-sm font-medium">Threshold</div>
+            <Input
+              className="w-auto"
+              type="number"
+              min="1"
+              value={multisig.threshold}
+              onChange={(evt) => {
+                setMultisigSignatories({
+                  ...multisig,
+                  threshold: Math.floor(evt.target.valueAsNumber),
+                });
+              }}
+            />
+          </label>
+          {multisig.addresses.filter((v) => v !== null).length < 2 ? (
             <div className="text-orange-600">
               Multisig needs at least 2 members
             </div>
@@ -236,8 +254,10 @@ const ManualMultisig = () => {
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 py-2">
-                <div>Resulting multisig address:</div>
+              <div>
+                <div className="text-sm font-medium">
+                  Resulting multisig address
+                </div>
                 <OnChainIdentity value={accId.dec(accountId!)} />
               </div>
               {delegates &&
@@ -255,6 +275,22 @@ const ManualMultisig = () => {
     </>
   );
 };
+
+const multisigSignatories$ = multisigSignatoriesInput$.pipeState(
+  map((v) => {
+    if (!v) return null;
+    if (v.addresses.some((addr) => addr === null)) return null;
+    const addressSet = new Set(v.addresses);
+    if (addressSet.size != v.addresses.length) return null;
+    if (v.threshold < 1 || v.threshold > v.addresses.length) return null;
+
+    return {
+      addresses: v.addresses as string[],
+      threshold: v.threshold,
+    };
+  }),
+  withDefault(null)
+);
 
 export const proxySigners$ = state(
   combineLatest({

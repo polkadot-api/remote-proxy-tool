@@ -155,7 +155,7 @@ export const SelectChain = () => {
                     })
                   }
                 />
-                <div className="py-1">{chain}</div>
+                <div className="py-1 capitalize">{chain}</div>
               </label>
             </li>
           ))}

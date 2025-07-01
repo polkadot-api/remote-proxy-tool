@@ -80,7 +80,7 @@ export const CallData = () => {
         value={rawCallData}
         onChange={(evt) => setCallData(evt.target.value)}
       />
-      <div>
+      <div className="text-sm text-muted-foreground">
         Tip: Use
         <a
           className="underline mx-1 inline-flex "

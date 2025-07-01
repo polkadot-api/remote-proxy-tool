@@ -1,5 +1,6 @@
 import { useStateObservable } from "@react-rxjs/core";
 import { Dot, PenTool } from "lucide-react";
+import { twMerge } from "tailwind-merge";
 import { OnChainIdentity } from "./components/AccountSelector/OnChainIdentity";
 import { Step } from "./components/Step";
 import { Textarea } from "./components/ui/textarea";
@@ -20,16 +21,24 @@ export const Sign = () => {
   const client = useStateObservable(client$);
 
   return (
-    <div className="p-2 space-y-2">
+    <div className="p-2 space-y-4">
       <div>
         <ChainStatus />
       </div>
-      <div className={client ? "" : "opacity-50 pointer-events-none"}>
-        <Step title="1. Select Account">
+      <div
+        className={twMerge(
+          "space-y-4",
+          client ? "" : "opacity-50 pointer-events-none"
+        )}
+      >
+        <Step
+          number={1}
+          title="Select Account"
+          subtitle="Connect your wallet and choose an account to sign the transaction."
+        >
           <SelectAccount />
         </Step>
-        <hr />
-        <Step title="2. Submit">
+        <Step number={2} title="Submit" subtitle="Submit your signature">
           <Submit />
         </Step>
       </div>

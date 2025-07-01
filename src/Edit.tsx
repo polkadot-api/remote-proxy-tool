@@ -16,23 +16,35 @@ export const Edit = () => {
   const submitAction = useStateObservable(submitAction$);
 
   return (
-    <div className="p-2 space-y-2">
-      <Step title="1. Select Chain">
+    <div className="p-2 space-y-4">
+      <Step
+        number={1}
+        title="Select Chain"
+        subtitle="Choose a chain o provide a custom RPC URL"
+      >
         <SelectChain />
       </Step>
-      <hr />
-      <Step title="2. Select Proxy">
+      <Step
+        number={2}
+        title="Select Proxy"
+        subtitle="Enter the proxy address and configure delegates"
+      >
         <SelectProxy />
       </Step>
-      <hr />
-      <Step title="3. Select Signer">
+      <Step
+        number={3}
+        title="Select Signer"
+        subtitle="Connect your wallet and choose an account to sign the transaction."
+      >
         <SelectAccount />
       </Step>
-      <hr />
-      <Step title="4. Call Data">
+      <Step
+        number={4}
+        title="Call Data"
+        subtitle="Create the transaction payload to be executed."
+      >
         <CallData />
       </Step>
-      <hr />
       {submitAction ? (
         submitAction.type === "multisig" ? (
           <Button
