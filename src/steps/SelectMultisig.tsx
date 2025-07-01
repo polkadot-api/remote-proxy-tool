@@ -40,6 +40,8 @@ import {
 import { tx$ } from "./CallData";
 import { client$ } from "./SelectChain";
 
+const getMultisig = novasamaProvider("kusama");
+
 const initialSignatories = getHashParam("signatories");
 const initialThreshold = getHashParam("threshold");
 
@@ -237,7 +239,7 @@ const importMultisigAddr$ = state(importMultisigAddrChange$, null);
 const importSignatories$ = importMultisigAddr$.pipeState(
   switchMap((v) =>
     (v
-      ? from(novasamaProvider(v)).pipe(
+      ? from(getMultisig(v)).pipe(
           map((result) => ({
             result,
           }))
