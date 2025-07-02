@@ -35,8 +35,8 @@ import { accountsByExtension$ } from "./accounts.state";
 
 const peopleChainSpec = import("polkadot-api/chains/polkadot_people");
 
-const peopleChain = smoldotChains
-  .polkadot()
+const peopleChain = smoldotChains.polkadot
+  .relay()
   .then(({ chainSpec }) =>
     Promise.all([smoldot.addChain({ chainSpec }), peopleChainSpec])
   )

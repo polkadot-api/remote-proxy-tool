@@ -4,10 +4,17 @@ import { Edit } from "./Edit";
 import { Sign } from "./Sign";
 import { mode$ } from "./mode";
 import { decodedCallData$ } from "./steps/CallData";
+import { selectedAccount$ } from "./steps/SelectAccount";
 import { client$ } from "./steps/SelectChain";
-import { multisigAccount$ } from "./steps/SelectMultisig";
+import { multisigAccount$, proxyAddress$ } from "./steps/SelectProxy";
 
-const app$ = merge(client$, decodedCallData$, multisigAccount$);
+const app$ = merge(
+  client$,
+  decodedCallData$,
+  multisigAccount$,
+  proxyAddress$,
+  selectedAccount$
+);
 function App() {
   const mode = useStateObservable(mode$);
 

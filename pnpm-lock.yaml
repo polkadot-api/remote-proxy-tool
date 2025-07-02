@@ -17,6 +17,9 @@ dependencies:
   '@polkadot-api/sdk-accounts':
     specifier: 0.2.1
     version: 0.2.1(@noble/hashes@1.8.0)(@react-rxjs/core@0.10.8)(polkadot-api@1.14.1)(react@19.1.0)(rxjs@7.8.2)
+  '@polkadot-api/sdk-remote-proxy':
+    specifier: ^0.2.1
+    version: 0.2.1(polkadot-api@1.14.1)(rxjs@7.8.2)
   '@polkadot-api/substrate-bindings':
     specifier: ^0.14.0
     version: 0.14.0
@@ -889,6 +892,18 @@ packages:
     transitivePeerDependencies:
       - '@react-rxjs/core'
       - react
+    dev: false
+
+  /@polkadot-api/sdk-remote-proxy@0.2.1(polkadot-api@1.14.1)(rxjs@7.8.2):
+    resolution: {integrity: sha512-MO1p8jdt8LZZGiVwGzQCcTrmpAd4kVc2spq3vU/JtqyMZFq/zAUhqc9GGiu/A4b8Bzn3VA3wlPorlHAOMzQdIA==}
+    peerDependencies:
+      polkadot-api: '>=1.14.1'
+      rxjs: '>=7.8.0'
+    dependencies:
+      '@polkadot-api/meta-signers': 0.1.8
+      '@polkadot-api/substrate-bindings': 0.14.0
+      polkadot-api: 1.14.1(rxjs@7.8.2)
+      rxjs: 7.8.2
     dev: false
 
   /@polkadot-api/signer@0.2.2:

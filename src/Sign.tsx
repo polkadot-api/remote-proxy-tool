@@ -1,19 +1,23 @@
 import { useStateObservable } from "@react-rxjs/core";
 import { Dot, Edit, FileCode, Info, PenTool, Users } from "lucide-react";
+import { twMerge } from "tailwind-merge";
 import { OnChainIdentity } from "./components/AccountSelector/OnChainIdentity";
 import { Step } from "./components/Step";
+import { Button } from "./components/ui/button";
 import { Textarea } from "./components/ui/textarea";
 import { stringify } from "./lib/json";
 import { genericSS58 } from "./lib/ss58";
 import { cn } from "./lib/utils";
+import { setMode } from "./mode";
 import { decodedCallData$ } from "./steps/CallData";
 import { SelectAccount } from "./steps/SelectAccount";
 import { client$, selectedChain$ } from "./steps/SelectChain";
-import { multisigAccount$, multisigCall$ } from "./steps/SelectMultisig";
-import { Submit } from "./steps/Submit";
-import { twMerge } from "tailwind-merge";
-import { Button } from "./components/ui/button";
-import { setMode } from "./mode";
+import {
+  multisigAccount$,
+  proxyAddress$,
+  ProxyDelegates,
+} from "./steps/SelectProxy";
+import { multisigCall$, Submit } from "./steps/Submit";
 
 export const Sign = () => {
   const client = useStateObservable(client$);
@@ -23,7 +27,7 @@ export const Sign = () => {
       <div className="py-2">
         <h1 className="font-bold text-3xl">Review & Sign Transaction</h1>
         <h3 className="text-muted-foreground">
-          A multisig transaction is ready for your approval.
+          A remote proxy multisig transaction is ready for your approval.
         </h3>
       </div>
       <div className="rounded-lg shadow bg-background">
@@ -71,17 +75,29 @@ const ChainStatus = () => {
   const callData = useStateObservable(decodedCallData$);
   const multisig = useStateObservable(multisigAccount$)!;
   const multisigCall = useStateObservable(multisigCall$);
+  const proxy = useStateObservable(proxyAddress$)!;
 
   const genericApprovals = multisigCall?.approvals.map(genericSS58) ?? [];
 
   return (
     <>
       <div className="p-4">
-        <div className="text-muted-foreground text-sm font-medium">Chain</div>
-        <div className="flex items-center">
-          <div className="capitalize">{chain.value}</div>
-          <Dot className={client ? "text-green-500" : "text-orange-300"} />
-          <div>{client ? "Connected" : "Connecting…"}</div>
+        <div className="py-2 pt-0 border-b">
+          <div className="text-muted-foreground text-sm font-medium">Chain</div>
+          <div className="flex items-center">
+            <div className="capitalize">{chain.para}</div>
+            <Dot className={client ? "text-green-500" : "text-orange-300"} />
+            <div>{client ? "Connected" : "Connecting…"}</div>
+          </div>
+        </div>
+        <div className="py-2 border-b">
+          <div className="text-muted-foreground text-sm font-medium">
+            Proxy Account
+          </div>
+          <OnChainIdentity value={proxy} />
+        </div>
+        <div className="py-2">
+          <ProxyDelegates />
         </div>
       </div>
       <div className="bg-accent/20 border-y p-4 space-y-2">

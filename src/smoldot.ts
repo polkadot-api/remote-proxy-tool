@@ -10,10 +10,18 @@ export const smoldot = startFromWorker(new SmWorker(), {
 
 export const smoldotChains: Record<
   string,
-  () => Promise<{ chainSpec: string }>
+  {
+    relay: () => Promise<{ chainSpec: string }>;
+    parachains?: Record<string, () => Promise<{ chainSpec: string }>>;
+  }
 > = {
-  polkadot: async () => import("polkadot-api/chains/polkadot"),
-  kusama: async () => import("polkadot-api/chains/ksmcc3"),
-  westend: async () => import("polkadot-api/chains/westend2"),
-  paseo: async () => import("polkadot-api/chains/paseo"),
+  polkadot: {
+    relay: () => import("polkadot-api/chains/polkadot"),
+  },
+  kusama: {
+    relay: () => import("polkadot-api/chains/ksmcc3"),
+    parachains: {
+      kusamaAh: () => import("polkadot-api/chains/ksmcc3_asset_hub"),
+    },
+  },
 };
